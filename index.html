@@ -1,0 +1,565 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>Listed FS Platform Screener</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans+Condensed:wght@500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<style>
+/* Layout: filter rail on the left, summary + chart + sortable table on the right; rail stacks above on phones */
+:root{
+  --bg:#F4F6F8; --panel:#FFFFFF; --ink:#16202B; --muted:#5B6773; --line:#DDE3EA; --soft:#EBF0F5;
+  --accent:#1D5C86; --accent-soft:#E1ECF4; --good:#1F7A4D; --warn:#A7650C; --bad:#B23A3A; --band:rgba(29,92,134,.07);
+  --c1:#2E6F9E; --c2:#C07A1E; --c3:#3D8F6A; --c4:#7F8792; --c5:#8B5BB5; --c6:#C2506B; --c7:#24939E; --c8:#8A7535;
+  --f-disp:"IBM Plex Sans Condensed","Arial Narrow",system-ui,sans-serif;
+  --f-body:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --f-num:"IBM Plex Mono",ui-monospace,"SFMono-Regular",Menlo,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0E1318; --panel:#151C23; --ink:#E4EAF0; --muted:#94A1AE; --line:#26313C; --soft:#1C252E;
+  --accent:#6FAEDB; --accent-soft:#1B2E3D; --good:#4FBF86; --warn:#E0A24A; --bad:#E57373; --band:rgba(111,174,219,.08);
+  --c1:#5B9BD0; --c2:#E09A3E; --c3:#5DB58C; --c4:#A2AAB4; --c5:#B08BDB; --c6:#E07892; --c7:#4CC0CA; --c8:#C4AA5E; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0E1318; --panel:#151C23; --ink:#E4EAF0; --muted:#94A1AE; --line:#26313C; --soft:#1C252E;
+  --accent:#6FAEDB; --accent-soft:#1B2E3D; --good:#4FBF86; --warn:#E0A24A; --bad:#E57373; --band:rgba(111,174,219,.08);
+  --c1:#5B9BD0; --c2:#E09A3E; --c3:#5DB58C; --c4:#A2AAB4; --c5:#B08BDB; --c6:#E07892; --c7:#4CC0CA; --c8:#C4AA5E; color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:14px;line-height:1.45}
+.wrap{max-width:1480px;margin:0 auto;padding-block:20px 48px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+header.top{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:12px 24px;margin-bottom:18px}
+h1{font-family:var(--f-disp);font-weight:600;font-size:1.75rem;letter-spacing:-.01em;margin:0;text-wrap:balance}
+.sub{color:var(--muted);margin:4px 0 0;max-width:70ch}
+.eyebrow{font-family:var(--f-num);font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.layout{display:grid;grid-template-columns:280px minmax(0,1fr);gap:20px;align-items:start}
+@media (max-width:900px){.layout{grid-template-columns:minmax(0,1fr)}}
+aside.rail{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:16px;display:flex;flex-direction:column;gap:18px;position:sticky;top:calc(env(safe-area-inset-top,0px) + 12px);max-height:calc(100vh - 24px);overflow:auto}
+@media (max-width:900px){aside.rail{position:static;max-height:none}}
+.grp{display:flex;flex-direction:column;gap:8px}
+.grp h3{margin:0;font-family:var(--f-num);font-weight:500;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+input[type=search],input[type=number],select{font:inherit;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:6px;padding:6px 8px;width:100%;min-width:0}
+input:focus-visible,select:focus-visible,button:focus-visible,.chip:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+.presets{display:flex;flex-wrap:wrap;gap:6px}
+button{font:inherit;cursor:pointer}
+.btn{border:1px solid var(--line);background:var(--panel);color:var(--ink);border-radius:6px;padding:6px 10px;font-size:13px}
+.btn:hover{border-color:var(--accent);color:var(--accent)}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--panel)}
+.btn.primary:hover{opacity:.9;color:var(--panel)}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chip{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--line);border-radius:999px;padding:3px 9px 3px 7px;font-size:12px;background:var(--panel);color:var(--ink);cursor:pointer;user-select:none}
+.chip .dot{width:8px;height:8px;border-radius:50%;flex:none}
+.chip .ct{font-family:var(--f-num);color:var(--muted);font-size:11px}
+.chip[aria-pressed=true]{background:var(--accent-soft);border-color:var(--accent)}
+.range{display:grid;grid-template-columns:1fr auto 1fr;gap:6px;align-items:center}
+.range span{color:var(--muted);font-size:12px}
+.rlabel{display:flex;justify-content:space-between;font-size:13px}
+.rlabel em{font-style:normal;color:var(--muted);font-family:var(--f-num);font-size:11px}
+.tog{display:flex;align-items:center;gap:8px;font-size:13px;cursor:pointer}
+.tog input{accent-color:var(--accent);width:15px;height:15px}
+.seg{display:flex;border:1px solid var(--line);border-radius:6px;overflow:hidden}
+.seg button{flex:1;border:0;background:var(--panel);color:var(--ink);padding:5px 0;font-size:13px;border-right:1px solid var(--line)}
+.seg button:last-child{border-right:0}
+.seg button[aria-pressed=true]{background:var(--accent-soft);color:var(--accent);font-weight:600}
+main{display:flex;flex-direction:column;gap:16px;min-width:0}
+.kpis{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:1px;background:var(--line);border:1px solid var(--line);border-radius:8px;overflow:hidden}
+@media (max-width:1100px){.kpis{grid-template-columns:repeat(3,minmax(0,1fr))}}
+@media (max-width:520px){.kpis{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.kpi{background:var(--panel);padding:12px 14px}
+.kpi b{display:block;font-family:var(--f-num);font-weight:500;font-size:1.35rem;font-variant-numeric:tabular-nums;margin-top:2px}
+.kpi small{color:var(--muted);font-size:12px}
+.viz{display:grid;grid-template-columns:minmax(0,1.7fr) minmax(0,1fr);gap:16px}
+@media (max-width:1100px){.viz{grid-template-columns:minmax(0,1fr)}}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:14px 16px;min-width:0}
+.card-h{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px;margin-bottom:8px}
+.card-h h2{font-family:var(--f-disp);font-weight:600;font-size:1.05rem;margin:0}
+.axes{display:flex;gap:6px;align-items:center;font-size:12px;color:var(--muted)}
+.axes select{width:auto;padding:3px 6px;font-size:12px}
+#scatter{width:100%;height:auto;display:block}
+#scatter text{font-family:var(--f-num);font-size:10px;fill:var(--muted)}
+#scatter .grid{stroke:var(--line);stroke-width:1}
+#scatter .dot{stroke:var(--panel);stroke-width:1.5;cursor:pointer;transition:r .12s}
+#scatter .dot.dim{opacity:.16}
+#scatter .dot.hl{stroke:var(--ink);stroke-width:2}
+#scatter .bandr{fill:var(--band)}
+#scatter .bandt{fill:var(--accent);font-size:10px}
+.tip{position:fixed;pointer-events:none;background:var(--ink);color:var(--bg);font-size:12px;padding:6px 8px;border-radius:5px;z-index:20;max-width:260px;line-height:1.35}
+.tip[hidden]{display:none}
+.bars{display:flex;flex-direction:column;gap:8px}
+.bar{display:grid;grid-template-columns:minmax(0,1fr) 34px;gap:8px;align-items:center;font-size:12.5px}
+.bar .lab{display:flex;justify-content:space-between;gap:6px;margin-bottom:3px}
+.bar .lab span:first-child{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.bar .track{height:7px;background:var(--soft);border-radius:4px;overflow:hidden}
+.bar .fill{height:100%;border-radius:4px}
+.bar .n{font-family:var(--f-num);text-align:right;font-variant-numeric:tabular-nums}
+.note{color:var(--muted);font-size:12px;margin:10px 0 0}
+.tbl-card{padding:0}
+.tbl-card .card-h{padding:14px 16px 6px;margin:0}
+.tbl-wrap{overflow-x:auto}
+table{border-collapse:collapse;width:100%;min-width:1550px;font-size:13px}
+thead th{position:sticky;top:0;background:var(--panel);text-align:right;font-weight:500;color:var(--muted);font-size:11.5px;padding:8px 10px;border-bottom:1px solid var(--line);white-space:nowrap;cursor:pointer;user-select:none}
+thead th.l{text-align:left}
+thead th:hover{color:var(--ink)}
+thead th[aria-sort] {color:var(--accent)}
+thead th .arr{font-size:9px;margin-left:3px}
+tbody td{padding:9px 10px;border-bottom:1px solid var(--line);text-align:right;font-family:var(--f-num);font-variant-numeric:tabular-nums;white-space:nowrap;vertical-align:top}
+tbody td.l{text-align:left;font-family:var(--f-body);white-space:normal}
+tbody tr.row{cursor:pointer}
+tbody tr.row:hover td{background:var(--soft)}
+tbody tr.row.open td{background:var(--accent-soft)}
+tbody tr.row.fit td:nth-child(2){box-shadow:inset 3px 0 0 var(--accent)}
+.cname{font-weight:600;font-size:13.5px;display:block}
+.cmeta{display:flex;flex-wrap:wrap;gap:4px 8px;margin-top:3px;font-size:11.5px;color:var(--muted);align-items:center}
+.vt{display:inline-flex;align-items:center;gap:4px}
+.vt .dot{width:7px;height:7px;border-radius:50%}
+.flag{font-family:var(--f-num);font-size:10px;letter-spacing:.04em;text-transform:uppercase;padding:1px 5px;border-radius:3px;border:1px solid currentColor}
+.flag.w{color:var(--warn)} .flag.i{color:var(--accent)}
+.pos{color:var(--good)} .neg{color:var(--bad)} .na{color:var(--muted)}
+.star{background:none;border:0;font-size:16px;color:var(--line);padding:0 2px;line-height:1}
+.star[aria-pressed=true]{color:var(--warn)}
+.star:hover{color:var(--warn)}
+.detail td{background:var(--bg);padding:14px 16px 18px;text-align:left;font-family:var(--f-body);white-space:normal}
+.dgrid{position:sticky;left:16px;max-width:calc(var(--tw,1000px) - 32px);display:grid;grid-template-columns:minmax(0,1.4fr) minmax(0,1fr) minmax(0,1fr);gap:18px}
+@media (max-width:900px){.dgrid{grid-template-columns:minmax(0,1fr)}}
+.dgrid h4{margin:0 0 6px;font-family:var(--f-num);font-weight:500;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.dgrid p{margin:0 0 8px;max-width:72ch}
+dl.kv{display:grid;grid-template-columns:auto 1fr;gap:4px 14px;margin:0;font-size:13px}
+dl.kv dt{color:var(--muted)} dl.kv dd{margin:0;text-align:right;font-family:var(--f-num);font-variant-numeric:tabular-nums}
+.holdbar{display:flex;height:10px;border-radius:5px;overflow:hidden;margin:4px 0 8px;background:var(--soft)}
+.holdbar i{display:block;height:100%}
+.legend{display:flex;flex-wrap:wrap;gap:4px 12px;font-size:11.5px;color:var(--muted)}
+.legend span{display:inline-flex;align-items:center;gap:4px}
+.legend i{width:8px;height:8px;border-radius:2px;display:inline-block}
+.links a{color:var(--accent);word-break:break-all;display:block;font-size:12.5px;margin-bottom:3px}
+.empty{padding:40px 16px;text-align:center;color:var(--muted)}
+.toast{position:fixed;bottom:calc(20px + env(safe-area-inset-bottom,0px));left:50%;transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:8px 14px;border-radius:6px;font-size:13px;z-index:30}
+footer{color:var(--muted);font-size:12px;margin-top:20px;max-width:100ch}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+
+<div class="wrap">
+  <header class="top">
+    <div>
+      <div class="eyebrow">Greater Pacific Capital · Listed platform search · Consolidated FY24–FY26</div>
+      <h1>Listed FS Platform Screener</h1>
+      <p class="sub">38 small-cap listed Indian financial services companies. Filter by vertical, size, valuation and shareholding; click a row for the classification evidence, holding pattern and contacts.</p>
+    </div>
+    <div class="presets">
+      <button class="btn" id="copyBtn" type="button">Copy filtered table</button>
+    </div>
+  </header>
+
+  <div class="layout">
+    <aside class="rail" aria-label="Filters">
+      <div class="grp">
+        <h3>Quick screens</h3>
+        <div class="presets">
+          <button class="btn primary" type="button" data-preset="mandate" title="Market cap ₹40–130 cr and FY26 PAT ≥ ₹5 cr">Mandate fit</button>
+          <button class="btn" type="button" data-preset="clean">Clean & controllable</button>
+          <button class="btn" type="button" data-preset="growth">Profit growers</button>
+          <button class="btn" type="button" data-preset="reset">Reset</button>
+        </div>
+      </div>
+      <div class="grp">
+        <h3>Search</h3>
+        <input type="search" id="q" placeholder="Company, ticker or evidence text">
+      </div>
+      <div class="grp">
+        <h3>Business vertical</h3>
+        <div class="chips" id="vchips"></div>
+        <label class="tog"><input type="checkbox" id="multiOnly"> Multi-vertical only</label>
+      </div>
+      <div class="grp">
+        <h3>Exchange</h3>
+        <div class="seg" id="exch">
+          <button type="button" data-v="all" aria-pressed="true">All</button>
+          <button type="button" data-v="NSEI" aria-pressed="false">NSE</button>
+          <button type="button" data-v="BSE" aria-pressed="false">BSE only</button>
+        </div>
+      </div>
+      <div class="grp" id="ranges"></div>
+      <div class="grp">
+        <h3>Conditions</h3>
+        <label class="tog"><input type="checkbox" id="netCash"> Net cash (net debt ≤ 0)</label>
+        <label class="tog"><input type="checkbox" id="patUp"> FY26 PAT above FY25</label>
+        <label class="tog"><input type="checkbox" id="hasProm"> Has an identified promoter</label>
+        <label class="tog"><input type="checkbox" id="hasLi"> Has LinkedIn contact</label>
+        <label class="tog"><input type="checkbox" id="starOnly"> Shortlisted only</label>
+      </div>
+    </aside>
+
+    <main>
+      <section class="kpis" id="kpis" aria-label="Summary of filtered companies"></section>
+
+      <section class="viz">
+        <div class="card">
+          <div class="card-h">
+            <h2>Positioning</h2>
+            <div class="axes">
+              <label for="ax">X</label><select id="ax"></select>
+              <label for="ay">Y</label><select id="ay"></select>
+            </div>
+          </div>
+          <svg id="scatter" viewBox="0 0 720 340" role="img" aria-label="Scatter plot of filtered companies"></svg>
+          <div class="legend" id="legend"></div>
+        </div>
+        <div class="card">
+          <div class="card-h"><h2>Vertical mix</h2><span class="eyebrow" id="mixN"></span></div>
+          <div class="bars" id="bars"></div>
+          <p class="note">A company with several tagged verticals counts once in each.</p>
+        </div>
+      </section>
+
+      <section class="card tbl-card">
+        <div class="card-h">
+          <h2 id="tblTitle">Companies</h2>
+          <span class="eyebrow">₹ crore · blue edge = mandate fit</span>
+        </div>
+        <div class="tbl-wrap">
+          <table>
+            <thead><tr id="thead"></tr></thead>
+            <tbody id="tbody"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <footer>
+        Source: Listed FS Companies Screen workbook (consolidated financials, FY24–FY26). Mandate fit = market cap ₹40–130 cr and FY26 PAT ≥ ₹5 cr.
+        Indicative cost to control = market cap × (promoter stake + 26% open offer under SEBI SAST), capped at 100%, at current market price with no control premium. Implied ROE = P/B ÷ P/E.
+        Shortlist stars are saved in this browser only.
+      </footer>
+    </main>
+  </div>
+</div>
+<div class="tip" id="tip" hidden></div>
+<div class="toast" id="toast" hidden></div>
+
+<script>
+const RAW = [{"n":"MOS Utility Limited","t":"NSEI:MOS","v":[["Fintech / Digital Lending & Payments",null]],"seg":null,"ev":"Screener/AR: single segment \"Fintech and Utility Business\" + minor Travel; website: agent-network API platform for DMT/AEPS/bill-pay/recharge","mc":146.73,"r26":635.24,"r25":616.46,"r24":187.0,"p26":18.0,"p25":10.08,"p24":12.0,"pe":8.15,"pb":1.38,"pr":36.23,"rt":51.16,"fii":8.02,"dii":4.6,"inst":12.62,"gd":71.49,"cash":43.0,"nd":28.49,"li":["https://www.linkedin.com/in/chirag-shah-48590b14/"]},{"n":"Reliable Data Services Limited","t":"NSEI:RELIABLE","v":[["Other / Diversified",null]],"seg":"BFSI Segment 22.4% / Non-BFSI Segment 77.6%","ev":"Own website: BPO/back-office outsourcing (transaction processing, field collection, HR/management services) for BFSI & non-BFSI corporate clients -- not itself a lender/broker","mc":139.24,"r26":185.08,"r25":130.59,"r24":79.0,"p26":6.98,"p25":10.0,"p24":5.0,"pe":19.95,"pb":1.96,"pr":67.79,"rt":32.0,"fii":0.2,"dii":0.0,"inst":0.2,"gd":46.26,"cash":5.25,"nd":41.01,"li":["https://www.linkedin.com/in/sandeep-jha-2787b313/"]},{"n":"Available Finance Limited","t":"BSE:531310","v":[["NBFC - Lending & Investment",null]],"seg":null,"ev":"FY26 AR Note 18(2): single segment, \"finance business\" (unregistered CIC)","mc":137.76,"r26":0.6,"r25":0.57,"r24":1.0,"p26":107.36,"p25":103.83,"p24":119.0,"pe":1.28,"pb":0.11,"pr":65.53,"rt":34.48,"fii":0.0,"dii":0.0,"inst":0,"gd":0.0,"cash":0.03,"nd":-0.03,"li":[]},{"n":"Keynote Financial Services Limited","t":"NSEI:KEYFINSERV","v":[["Investment Banking & Advisory",null]],"seg":"Merchant Banking 81.2% / Corporate Finance 13.4% / ESOP Advisory 5.4%","ev":"FY26 AR: standalone exempted under Ind AS 108 para 4; core business per MD&A is merchant banking (BRLM/IPO), corporate advisory, ESOP advisory","mc":130.88,"r26":29.41,"r25":30.69,"r24":49.23,"p26":6.89,"p25":14.57,"p24":26.79,"pe":19.0,"pb":0.9,"pr":71.87,"rt":18.86,"fii":9.26,"dii":0.01,"inst":9.27,"gd":4.14,"cash":11.85,"nd":-7.71,"li":["https://www.linkedin.com/in/cherian-m-j-051a3a4/  https://www.linkedin.com/in/vineetsuchanti/"]},{"n":"PMC Fincorp Limited","t":"BSE:534060","v":[["NBFC - Lending & Investment",null]],"seg":null,"ev":"FY26 AR Note 35: single segment, \"Financial / Investment Activities\"","mc":123.17,"r26":18.24,"r25":21.24,"r24":15.56,"p26":6.15,"p25":14.35,"p24":11.35,"pe":20.03,"pb":0.66,"pr":20.89,"rt":79.12,"fii":0.0,"dii":0.0,"inst":0,"gd":0.0,"cash":2.97,"nd":-2.97,"li":[]},{"n":"KIFS Financial Services Limited","t":"BSE:535566","v":[["NBFC - Lending & Investment",null]],"seg":null,"ev":"FY26 AR Note 29: single segment, margin trading/LAS/IPO funding NBFC","mc":119.29,"r26":35.99,"r25":33.16,"r24":46.65,"p26":8.04,"p25":8.07,"p24":7.12,"pe":14.84,"pb":1.88,"pr":74.41,"rt":25.21,"fii":0.0,"dii":0.37,"inst":0.37,"gd":381.83,"cash":23.16,"nd":358.67,"li":["https://www.linkedin.com/in/kushal-khandwala-76b88860/ https://www.linkedin.com/in/selvin-uthaman-81396317a/"]},{"n":"Vibrant Global Capital Limited","t":"BSE:538732","v":[["NBFC - Lending & Investment",null]],"seg":null,"ev":"FY26 AR Note 36: single segment (standalone), lending & investing NBFC","mc":119.16,"r26":186.15,"r25":281.98,"r24":242.0,"p26":16.46,"p25":-0.51,"p24":48.0,"pe":7.24,"pb":0.68,"pr":71.59,"rt":28.42,"fii":0.0,"dii":0.0,"inst":0,"gd":42.78,"cash":2.27,"nd":40.51,"li":["https://www.linkedin.com/in/vaibhav-garg-35399821/"]},{"n":"Sonal Mercantile Limited","t":"BSE:538943","v":[["NBFC - Lending & Investment",null]],"seg":null,"ev":"FY26 AR: single segment, NBFC lending + trading/arbitrage","mc":118.94,"r26":40.76,"r25":35.29,"r24":39.0,"p26":25.67,"p25":32.32,"p24":24.0,"pe":4.63,"pb":0.31,"pr":24.92,"rt":75.09,"fii":0.0,"dii":0.0,"inst":0,"gd":294.72,"cash":0.28,"nd":294.44,"li":[]},{"n":"My Mudra Fincorp Limited","t":"NSEI:MYMUDRA","v":[["Financial Products Distribution",null]],"seg":null,"ev":"FY26 AR Note 11: single segment; DSA/commission distribution of loans, insurance, mutual funds -- not a lender itself","mc":113.81,"r26":117.79,"r25":80.67,"r24":71.0,"p26":12.0,"p25":9.01,"p24":6.0,"pe":9.48,"pb":1.75,"pr":57.89,"rt":40.48,"fii":1.08,"dii":0.55,"inst":1.63,"gd":11.26,"cash":14.87,"nd":-3.61,"li":["https://www.linkedin.com/in/pushpendra-mehru-71451515/ https://www.linkedin.com/in/vidit-jindal-40aa59b/"]},{"n":"Indbank Merchant Banking Services Limited","t":"BSE:511473","v":[["Stock & Commodity Broking",96.1],["Investment Banking & Advisory",0.8]],"seg":null,"ev":"FY26 AR MD&A \"Segment-wise or product-wise performance\" (standalone): Stock Broking Rs.1,410.89L + DP Operations Rs.337.39L = 96.1% of core operating income; Merchant Banking (Investment Banking & Advisory) Rs.14.40L = 0.8%; Mutual Fund Distribution Rs.56.21L = 3.1% (of Rs.1,818.89L, excl. Other Income). CORRECTION to earlier \"roughly equal emphasis\" claim -- Merchant Banking is in fact a very minor (<1%) revenue line relative to Stock Broking/DP; the Investment Banking & Advisory tag reflects a real but small-sliver business line, not a comparable second pillar.","mc":111.19,"r26":24.95,"r25":26.57,"r24":24.76,"p26":6.99,"p25":8.46,"p24":9.0,"pe":15.91,"pb":1.09,"pr":64.84,"rt":35.07,"fii":0.0,"dii":0.09,"inst":0.09,"gd":1.6,"cash":92.38,"nd":-90.78,"li":["https://www.linkedin.com/in/m-s-balaji-45a81756/"]},{"n":"Optimus Finance Limited","t":"BSE:531254","v":[["NBFC - Lending & Investment",null]],"seg":null,"ev":"FY26 AR: standalone single segment, \"Lending & Investment Activities\" (consolidated petrochemicals business excluded per standalone-only basis)","mc":106.33,"r26":186.15,"r25":159.26,"r24":111.0,"p26":10.0,"p25":10.0,"p24":8.0,"pe":10.63,"pb":1.65,"pr":53.89,"rt":46.11,"fii":0.0,"dii":0.0,"inst":0,"gd":38.9,"cash":7.77,"nd":31.13,"li":["https://www.linkedin.com/in/abagarwal/"]},{"n":"RSD Finance Limited","t":"BSE:539875","v":[["NBFC - Lending & Investment",86.6],["Other / Diversified",13.4]],"seg":null,"ev":"FY26 AR MD&A \"Segment-Wise Performance\" (standalone): Investment & Financial Segment Rs.648.64L = 86.6%, Job Work Segment Rs.100.72L = 13.4% (zinc-plating/metal-finishing -- a genuine industrial activity, not financial).","mc":104.69,"r26":37.58,"r25":132.08,"r24":108.0,"p26":15.0,"p25":18.0,"p24":17.0,"pe":6.98,"pb":0.5,"pr":74.98,"rt":25.01,"fii":0.0,"dii":0.0,"inst":0,"gd":2.27,"cash":5.28,"nd":-3.01,"li":["https://www.linkedin.com/in/cs-subhajita-biswal-7aa959119/"]},{"n":"Titan Securities Limited","t":"BSE:530045","v":[["NBFC - Lending & Investment",null]],"seg":null,"ev":"FY26 AR Note 32: single segment, NBFC Investment Company (shares/securities dealing + loans)","mc":91.75,"r26":5.96,"r25":10.42,"r24":7.0,"p26":12.46,"p25":10.43,"p24":10.0,"pe":7.36,"pb":0.86,"pr":73.95,"rt":26.05,"fii":0.0,"dii":0.0,"inst":0,"gd":0.12,"cash":0.17,"nd":-0.05,"li":["https://www.linkedin.com/in/cs-saurabh-shashwat-9237ba51/"]},{"n":"GACM Technologies Limited","t":"BSE:531723","v":[["Other / Diversified",null]],"seg":null,"ev":"FY26 AR Note 23/24: single segment, \"Software and Consultancy Services\"; own website confirms pure software/product-development company (formerly Stampede Capital/PMS, now fully pivoted away from financial services)","mc":89.48,"r26":21.87,"r25":13.65,"r24":7.47,"p26":8.6,"p25":4.12,"p24":1.13,"pe":10.4,"pb":0.58,"pr":0.63,"rt":99.09,"fii":0.24,"dii":0.05,"inst":0.29,"gd":0.0,"cash":1.28,"nd":-1.28,"li":["https://www.linkedin.com/in/srinivas-maya-a4895a41/ https://www.linkedin.com/in/anil-thakur-11897050/"]},{"n":"Transcorp International Limited","t":"BSE:532410","v":[["Forex & Remittance Services",null]],"seg":null,"ev":"FY26 AR Note 44: single segment, forex/remittance (AD-II + PPI licenses)","mc":83.29,"r26":890.59,"r25":1434.9,"r24":2145.0,"p26":8.34,"p25":9.88,"p24":0.0,"pe":9.99,"pb":1.13,"pr":72.69,"rt":27.29,"fii":0.0,"dii":0.01,"inst":0.01,"gd":14.81,"cash":62.57,"nd":-47.76,"li":["https://www.linkedin.com/in/ayanagarwal/"]},{"n":"Nexome Capital Markets Limited","t":"BSE:508905","v":[["Investment Banking & Advisory",87.9],["Stock & Commodity Broking",6.3]],"seg":null,"ev":"FY26 AR Note 48 Segment Reporting (standalone): Investment Banking Operations Rs.4,473.81L = 87.9%, Capital Market Operations Rs.321.03L = 6.3%, Unallocated Rs.291.75L = 5.7% (of Rs.5,086.59L total External Segment Revenue). Highly volatile year to year (deal-driven merchant banking) -- FY25 was the inverse: Capital Market Rs.3,685.63L = 83.3%, Investment Banking Rs.234.76L = 5.3%.","mc":82.96,"r26":50.87,"r25":43.46,"r24":237.0,"p26":12.16,"p25":0.69,"p24":2.0,"pe":6.82,"pb":0.41,"pr":51.81,"rt":44.65,"fii":3.56,"dii":0.0,"inst":3.56,"gd":6.86,"cash":6.82,"nd":0.04,"li":["https://www.linkedin.com/in/kishor-shah-382a75125/"]},{"n":"WSFx Global Pay Limited","t":"BSE:511147","v":[["Forex & Remittance Services",null]],"seg":null,"ev":"FY26 AR Note 37: single segment, forex/remittance (AD-II license)","mc":80.26,"r26":111.52,"r25":88.51,"r24":72.0,"p26":6.14,"p25":3.47,"p24":4.0,"pe":13.07,"pb":1.93,"pr":57.0,"rt":43.01,"fii":0.0,"dii":0.0,"inst":0,"gd":17.09,"cash":68.28,"nd":-51.19,"li":["https://www.linkedin.com/in/nsrikrishna/"]},{"n":"Mukesh Babu Financial Services Limited","t":"BSE:530341","v":[["NBFC - Lending & Investment",null]],"seg":null,"ev":"FY26 AR Note 30: single segment, lending & investment (formerly broking, now lending-focused)","mc":80.17,"r26":23.88,"r25":8.24,"r24":17.72,"p26":5.3,"p25":1.35,"p24":5.87,"pe":15.13,"pb":0.23,"pr":62.86,"rt":37.15,"fii":0.0,"dii":0.0,"inst":0,"gd":48.91,"cash":10.11,"nd":38.8,"li":[]},{"n":"RR Financial Consultants Limited","t":"BSE:511626","v":[["Stock & Commodity Broking",null],["Financial Products Distribution",null],["Investment Banking & Advisory",null],["NBFC - Lending & Investment",null]],"seg":null,"ev":"CORRECTION (verified against FY26 AR this pass): the standalone entity's own Segment Reporting note (Note 50) states \"financial services is the only reportable business segment and cannot be segregated\" -- Ind AS 108 disclosure is explicitly not applicable. The standalone Revenue note (Note 35) confirms 99.95% of standalone revenue (Rs.1,556.10L of Rs.1,556.92L) is one undifferentiated \"Brokerage, Consultancy & Auxiliary Services\" line; the consolidated note carries the identical disclaimer. The 4-way vertical description (Stock & Commodity Broking / Financial Products Distribution / Investment Banking & Advisory / NBFC Lending) describes the GROUP structure via named subsidiaries (RR Investors Capital Services, RR Insurance Brokers, RR Equity Brokers, RR Fincap) -- it is not evidenced by the standalone entity's own revenue disclosure. No percentage split exists at standalone level; flagged for review given the standalone-only classification basis.","mc":77.14,"r26":33.46,"r25":26.92,"r24":19.86,"p26":8.09,"p25":2.76,"p24":0.43,"pe":9.54,"pb":1.41,"pr":74.87,"rt":25.13,"fii":0.0,"dii":0.0,"inst":0,"gd":13.97,"cash":2.43,"nd":11.54,"li":["https://www.linkedin.com/in/rajat-prasad-21b88521/"]},{"n":"Standard Capital Markets Limited","t":"BSE:511700","v":[["NBFC - Lending & Investment",null]],"seg":null,"ev":"FY26 AR Note 40/39: single segment, NBFC lending (~99.9% of revenue is \"Interest on Loan\")","mc":76.09,"r26":357.65,"r25":90.93,"r24":31.0,"p26":80.49,"p25":28.35,"p24":11.0,"pe":0.95,"pb":0.17,"pr":2.65,"rt":97.36,"fii":0.0,"dii":0.0,"inst":0,"gd":2175.1,"cash":5.79,"nd":2169.31,"li":[]},{"n":"Comfort Fincap Limited","t":"BSE:535267","v":[["NBFC - Lending & Investment",null]],"seg":null,"ev":"FY26 results: single segment, NBFC-ICC lending + trading in shares/securities","mc":75.81,"r26":16.12,"r25":13.07,"r24":13.91,"p26":7.49,"p25":5.1,"p24":5.15,"pe":10.12,"pb":0.69,"pr":57.62,"rt":42.39,"fii":0.0,"dii":0.0,"inst":0,"gd":4.37,"cash":3.93,"nd":0.44,"li":[]},{"n":"B. N. Rathi Securities Limited","t":"BSE:523019","v":[["Stock & Commodity Broking",null]],"seg":null,"ev":"FY26 AR: single segment, stock/commodity broking + margin trading + DP + MF distribution","mc":72.03,"r26":63.32,"r25":58.13,"r24":57.0,"p26":9.44,"p25":9.45,"p24":11.0,"pe":7.63,"pb":0.89,"pr":46.76,"rt":53.25,"fii":0.0,"dii":0.0,"inst":0,"gd":0.09,"cash":82.21,"nd":-82.12,"li":[]},{"n":"Gowra Leasing & Finance Limited","t":"BSE:530709","v":[["NBFC - Lending & Investment",null]],"seg":null,"ev":"FY26 AR: single segment, \"Investment and Financing activities\"","mc":69.18,"r26":11.51,"r25":7.64,"r24":3.54,"p26":5.8,"p25":4.29,"p24":2.21,"pe":11.93,"pb":1.02,"pr":60.18,"rt":39.81,"fii":0.0,"dii":0.0,"inst":0,"gd":17.79,"cash":0.05,"nd":17.74,"li":["https://www.linkedin.com/in/srinivas-gowra-71894928?originalSubdomain=in"]},{"n":"Pioneer Investcorp Limited","t":"BSE:507864","v":[["Investment Banking & Advisory",null]],"seg":null,"ev":"FY26 AR Note 33: single segment, \"Providing Financial Services\" -- core per MD&A is Cat-I merchant banking + IB/advisory + proprietary govt securities book","mc":67.17,"r26":54.56,"r25":46.63,"r24":41.0,"p26":15.72,"p25":7.89,"p24":4.0,"pe":4.27,"pb":0.38,"pr":65.91,"rt":30.89,"fii":2.99,"dii":0.22,"inst":3.21,"gd":109.39,"cash":4.4,"nd":104.99,"li":["https://www.linkedin.com/in/gaurang-gandhi-pioneer/"]},{"n":"SKP Securities Limited","t":"BSE:531169","v":[["Stock & Commodity Broking",40.6],["Investment Banking & Advisory",1.4]],"seg":null,"ev":"FY26 AR Note 5, Ind AS 115 revenue disaggregation (standalone), of Rs.4,100.83L total: Broking Services Rs.1,666.51L = 40.6%, Distribution Services Rs.1,619.76L = 39.5%, Interest Income Rs.716.96L = 17.5%, Advisory Services Rs.59.05L = 1.4%, Depository Services Rs.38.55L = 0.9%. CORRECTION: the Investment Banking & Advisory tag reflects a very minor (1.4%) revenue line; Distribution Services (39.5%, third-party Mutual Fund/FD/insurance commission) is comparable in size to core Broking but is not currently tagged as a separate vertical -- flagged for review (candidate addition: Financial Products Distribution).","mc":65.23,"r26":41.02,"r25":37.16,"r24":30.53,"p26":10.36,"p25":9.99,"p24":8.65,"pe":6.3,"pb":1.08,"pr":74.99,"rt":24.83,"fii":0.0,"dii":0.18,"inst":0.18,"gd":19.53,"cash":39.37,"nd":-19.84,"li":["https://www.linkedin.com/in/naresh-pachisia-2237a311/"]},{"n":"Banas Finance Limited","t":"BSE:509053","v":[["NBFC - Lending & Investment",null]],"seg":null,"ev":"FY26 AR Note 33: effectively single segment, NBFC finance + share trading","mc":61.71,"r26":59.41,"r25":43.48,"r24":73.0,"p26":11.33,"p25":0.29,"p24":4.0,"pe":5.45,"pb":0.46,"pr":26.58,"rt":73.39,"fii":0.0,"dii":0.03,"inst":0.03,"gd":0.59,"cash":8.59,"nd":-8.0,"li":[]},{"n":"Leading Leasing Finance and Investment Company Limited","t":"BSE:540360","v":[["NBFC - Lending & Investment",null]],"seg":null,"ev":"FY26 AR Note 36: single segment, \"Financial Activities\" (financing + investing + leasing/hire-purchase)","mc":60.88,"r26":141.75,"r25":28.5,"r24":5.0,"p26":18.64,"p25":3.76,"p24":2.0,"pe":3.27,"pb":null,"pr":0.0,"rt":59.12,"fii":40.88,"dii":0.0,"inst":40.88,"gd":415.56,"cash":0.23,"nd":415.33,"li":[]},{"n":"Dar Credit & Capital Limited","t":"NSEI:DCCL","v":[["NBFC - Lending & Investment",null]],"seg":null,"ev":"FY26 AR Note 16: single segment, microfinance-style NBFC lending","mc":57.1,"r26":49.91,"r25":40.96,"r24":33.0,"p26":10.13,"p25":6.65,"p24":4.0,"pe":5.64,"pb":0.54,"pr":69.14,"rt":24.25,"fii":0.0,"dii":6.61,"inst":6.61,"gd":199.04,"cash":38.09,"nd":160.95,"li":["https://www.linkedin.com/in/rajkumar-vijay-41bb14259/"]},{"n":"Ceejay Finance Limited","t":"BSE:530789","v":[["Asset/Equipment Finance",null]],"seg":null,"ev":"Web search/rating agency confirms: RBI-registered \"Asset Finance Company - D NBFC,\" primarily 2W/4W vehicle financing -- matches Asset/Equipment Finance definition more precisely than generic NBFC lending","mc":55.44,"r26":26.54,"r25":26.29,"r24":20.71,"p26":7.68,"p25":6.77,"p24":6.57,"pe":7.22,"pb":0.67,"pr":59.03,"rt":40.98,"fii":0.0,"dii":0.0,"inst":0,"gd":43.46,"cash":1.6,"nd":41.86,"li":[]},{"n":"Real Touch Finance Limited","t":"BSE:538611","v":[["NBFC - Lending & Investment",null]],"seg":null,"ev":"FY26 AR Note 31: single segment, NBFC lending (business/personal/mortgage loans)","mc":44.93,"r26":40.39,"r25":28.86,"r24":18.74,"p26":5.19,"p25":4.61,"p24":2.63,"pe":8.66,"pb":0.86,"pr":54.12,"rt":45.83,"fii":0.0,"dii":0.03,"inst":0.03,"gd":256.5,"cash":3.36,"nd":253.14,"li":["https://www.linkedin.com/in/sridharan-gopal-71704323/"]},{"n":"Glance Finance Limited","t":"BSE:531199","v":[["NBFC - Lending & Investment",null]],"seg":"Lending & Investment Division 69.1% / Non-Strategic Business Division 30.9%","ev":"FY26 AR Note 43: two segments, both NBFC-type -- Lending & Investment Division (69.1%), Non-Strategic/asset-leasing Division (30.9%) -- both fold into the same vertical","mc":42.86,"r26":25.85,"r25":31.66,"r24":23.23,"p26":5.48,"p25":8.33,"p24":1.94,"pe":7.82,"pb":0.86,"pr":74.35,"rt":25.65,"fii":0.0,"dii":0.0,"inst":0,"gd":0.93,"cash":0.6,"nd":0.33,"li":[]},{"n":"Swati Projects Limited","t":"BSE:543914","v":[["NBFC - Lending & Investment",null]],"seg":null,"ev":"FY26 AR: standalone single segment, NBFC investments + inter-corporate/personal loans","mc":40.2,"r26":34.23,"r25":1.42,"r24":1.47,"p26":7.16,"p25":-0.13,"p24":0.55,"pe":5.61,"pb":2.48,"pr":23.85,"rt":76.14,"fii":0.0,"dii":0.0,"inst":0,"gd":0.59,"cash":2.31,"nd":-1.72,"li":[]},{"n":"Aastamangalam Finance Limited","t":"BSE:511764","v":[["NBFC - Lending & Investment",null]],"seg":null,"ev":"FY26 AR Note 21: single segment, pure NBFC lending","mc":38.99,"r26":17.18,"r25":15.27,"r24":7.03,"p26":8.99,"p25":9.63,"p24":3.6,"pe":4.34,"pb":0.47,"pr":28.49,"rt":71.51,"fii":0.0,"dii":0.0,"inst":0,"gd":50.45,"cash":22.37,"nd":28.08,"li":[]},{"n":"Ad-Manum Finance Limited","t":"BSE:511359","v":[["NBFC - Lending & Investment",null]],"seg":"NBFC Activity 98.5% / Wind Power Generation 1.5%","ev":"FY26 AR Note 23 / web search: two segments, NBFC Activity (98.5%) + Wind Power Generation (1.5%, immaterial) -- windmill segment too small/non-financial to warrant its own tag","mc":37.65,"r26":14.4,"r25":13.62,"r24":11.15,"p26":10.67,"p25":8.38,"p24":7.7,"pe":3.53,"pb":0.41,"pr":74.3,"rt":25.71,"fii":0.0,"dii":0.0,"inst":0,"gd":24.05,"cash":2.9,"nd":21.15,"li":["https://www.linkedin.com/in/vikas-gupta-6703984a/"]},{"n":"JMJ Fintech Limited","t":"BSE:538834","v":[["NBFC - Lending & Investment",null]],"seg":null,"ev":"FY26 AR: single segment (\"providing loans\") per Ind AS 108, but web search confirms a genuine second line: fund-raising advisory (IPO/PE/VC) + M&A/valuation consulting -- CORRECTION (live verification, later pass): jmjfintechltd.com shows a pure branch-based retail/gold-loan NBFC with zero advisory content; the advisory-line claim was false and has been removed -- classification is NBFC - Lending & Investment only","mc":36.13,"r26":21.99,"r25":17.15,"r24":7.46,"p26":7.6,"p25":5.17,"p24":2.14,"pe":4.75,"pb":0.61,"pr":23.27,"rt":76.72,"fii":0.0,"dii":0.0,"inst":0,"gd":32.83,"cash":8.09,"nd":24.74,"li":["https://www.linkedin.com/in/jojumj/"]},{"n":"Nagreeka Capital & Infrastructure Limited","t":"BSE:532895","v":[["NBFC - Lending & Investment",null]],"seg":null,"ev":"FY26 AR: single segment (\"Financial & Related Services\") -- Nagreeka Group's investment/trading portfolio vehicle (equity, PE, MF, real estate, renewable energy investments)","mc":34.25,"r26":49.6,"r25":57.13,"r24":62.88,"p26":7.41,"p25":18.56,"p24":13.34,"pe":4.62,"pb":1.25,"pr":53.53,"rt":46.43,"fii":0.0,"dii":0.03,"inst":0.03,"gd":94.63,"cash":1.08,"nd":93.55,"li":["https://www.linkedin.com/in/vivek-khanna-0a499a55/"]},{"n":"Intec Capital Limited","t":"BSE:526871","v":[["Asset/Equipment Finance",null]],"seg":null,"ev":"FY26 AR Notes 31.4/32.4: single segment, Asset Finance Company (SME/equipment financing)","mc":26.54,"r26":11.8,"r25":4.36,"r24":3.76,"p26":7.74,"p25":0.22,"p24":-5.65,"pe":3.43,"pb":0.64,"pr":71.04,"rt":28.95,"fii":0.0,"dii":0.0,"inst":0,"gd":24.51,"cash":3.68,"nd":20.83,"li":["https://www.linkedin.com/in/hemaant-kumarr-0b118b6/"]},{"n":"Golden Legand Leasing and Finance Limited","t":"BSE:509024","v":[["NBFC - Lending & Investment",1.9],["Fintech / Digital Lending & Payments",98.1]],"seg":null,"ev":"FY26 AR standalone Statement of Profit & Loss (face of P&L, Ind AS 108 Note 25 confirms single segment for CODM purposes but P&L line items are fully disaggregated): Transaction Processing Fees Rs.18,000.14L = 98.1%, Interest Income Rs.358.68L = 1.9% (of Rs.18,358.82L total revenue). CORRECTION: by standalone revenue this is overwhelmingly a fintech/payment-processing business, not primarily an NBFC lender -- the NBFC - Lending & Investment tag reflects a very minor (<2%) revenue line relative to Transaction Processing Fees (Fintech / Digital Lending & Payments).","mc":11.48,"r26":183.59,"r25":9.34,"r24":0.06,"p26":10.3,"p25":-2.2,"p24":-1.48,"pe":1.11,"pb":0.27,"pr":0.0,"rt":100.01,"fii":0.0,"dii":0.0,"inst":0,"gd":1.43,"cash":44.22,"nd":-42.79,"li":["https://www.linkedin.com/in/sanjana-suresh-9a0596117/"]}];
+const VERTS = [
+  ["NBFC - Lending & Investment","NBFC lending","--c1"],
+  ["Investment Banking & Advisory","IB & advisory","--c2"],
+  ["Stock & Commodity Broking","Broking","--c3"],
+  ["Other / Diversified","Other / diversified","--c4"],
+  ["Fintech / Digital Lending & Payments","Fintech & payments","--c5"],
+  ["Financial Products Distribution","Distribution","--c6"],
+  ["Forex & Remittance Services","Forex & remittance","--c7"],
+  ["Asset/Equipment Finance","Asset finance","--c8"]
+];
+const VMAP = Object.fromEntries(VERTS.map(v=>[v[0],{short:v[1],col:`var(${v[2]})`}]));
+
+const D = RAW.map((r,i)=>{
+  const g = (a,b)=> (a==null||b==null||b===0)?null:(a-b)/Math.abs(b)*100;
+  const cagr2 = (end,start)=> (end==null||start==null||start<=0||end<=0)?null:(Math.pow(end/start,1/2)-1)*100;
+  const prim = r.v.slice().sort((a,b)=>(b[1]??-1)-(a[1]??-1))[0]?.[0] || "Other / Diversified";
+  const ctrlPct = r.pr==null?null:Math.min(100,r.pr+26);
+  return {...r, id:i, ex:r.t.split(":")[0], tk:r.t.split(":")[1],
+    vn:r.v.map(x=>x[0]), prim,
+    rg:g(r.r26,r.r25), pg:g(r.p26,r.p25),
+    rg3:cagr2(r.r26,r.r24), pg3:cagr2(r.p26,r.p24),
+    pm: r.r26? r.p26/r.r26*100 : null,
+    roe: (r.pb&&r.pe)? r.pb/r.pe*100 : null,
+    ctrl: ctrlPct==null||r.mc==null?null:r.mc*ctrlPct/100,
+    fit: r.mc>=40 && r.mc<=130 && r.p26>=5,
+    review: /flagged for review/i.test(r.ev||""),
+    oddPE: r.pe!=null && r.pe<2
+  };
+});
+
+const RANGES = [
+  {k:"mc",  lab:"Market cap", unit:"₹ cr"},
+  {k:"p26", lab:"FY26 PAT", unit:"₹ cr"},
+  {k:"r26", lab:"FY26 revenue", unit:"₹ cr"},
+  {k:"pe",  lab:"P/E", unit:"x"},
+  {k:"pb",  lab:"P/B", unit:"x"},
+  {k:"pr",  lab:"Promoter holding", unit:"%"},
+  {k:"inst",lab:"Institutional (FII+DII)", unit:"%"},
+  {k:"nd",  lab:"Net debt", unit:"₹ cr"}
+];
+const AXES = {mc:"Market cap (₹ cr)",pe:"P/E (x)",pb:"P/B (x)",p26:"FY26 PAT (₹ cr)",p25:"FY25 PAT (₹ cr)",p24:"FY24 PAT (₹ cr)",r26:"FY26 revenue (₹ cr)",r25:"FY25 revenue (₹ cr)",r24:"FY24 revenue (₹ cr)",pr:"Promoter %",inst:"Institutional %",nd:"Net debt (₹ cr)",pg:"PAT growth %",pg3:"PAT 2yr CAGR %",roe:"Implied ROE %",ctrl:"Cost to control (₹ cr)"};
+
+// ---------- state ----------
+let S = {q:"",verts:new Set(),multi:false,ex:"all",rng:{},netCash:false,patUp:false,hasProm:false,hasLi:false,starOnly:false,sort:{k:"mc",dir:-1},open:null,ax:"mc",ay:"pb",hover:null};
+let stars = new Set();
+try{ stars = new Set(JSON.parse(localStorage.getItem("fsScreenStars")||"[]")); }catch(e){}
+function saveStars(){ try{ localStorage.setItem("fsScreenStars",JSON.stringify([...stars])); }catch(e){} }
+
+// ---------- formatting ----------
+const fmt = (v,d=1)=> v==null||isNaN(v) ? '<span class="na">–</span>' : v.toLocaleString("en-IN",{minimumFractionDigits:d,maximumFractionDigits:d});
+const fmtP = (v,d=1)=> v==null||isNaN(v) ? '<span class="na">–</span>' : fmt(v,d)+"%";
+const fmtG = v=> v==null||!isFinite(v) ? '<span class="na">–</span>' : `<span class="${v>=0?'pos':'neg'}">${v>=0?'+':''}${Math.abs(v)>=1000?'>999':v.toFixed(0)}%</span>`;
+const plain = (v,d=1)=> v==null||isNaN(v) ? "" : (+v).toFixed(d);
+const esc = s=> String(s??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const median = a=>{ a=a.filter(x=>x!=null&&isFinite(x)).sort((x,y)=>x-y); if(!a.length) return null; const m=a.length>>1; return a.length%2?a[m]:(a[m-1]+a[m])/2; };
+
+// ---------- build filter UI ----------
+const vchips = document.getElementById("vchips");
+VERTS.forEach(([full,short,c])=>{
+  const n = D.filter(d=>d.vn.includes(full)).length;
+  const b = document.createElement("button");
+  b.type="button"; b.className="chip"; b.setAttribute("aria-pressed","false"); b.dataset.v=full; b.title=full;
+  b.innerHTML=`<span class="dot" style="background:var(${c})"></span>${short}<span class="ct">${n}</span>`;
+  b.onclick=()=>{ S.verts.has(full)?S.verts.delete(full):S.verts.add(full); b.setAttribute("aria-pressed",S.verts.has(full)); render(); };
+  vchips.appendChild(b);
+});
+const rangesEl = document.getElementById("ranges");
+rangesEl.innerHTML = '<h3>Ranges</h3>' + RANGES.map(r=>{
+  const vals=D.map(d=>d[r.k]).filter(v=>v!=null);
+  const lo=Math.min(...vals), hi=Math.max(...vals);
+  return `<div><div class="rlabel"><span>${r.lab}</span><em>${fmt(lo,lo<10&&r.unit==="x"?1:0)} – ${fmt(hi,0)} ${r.unit}</em></div>
+  <div class="range"><input type="number" step="any" id="min_${r.k}" placeholder="min" aria-label="${r.lab} minimum"><span>to</span><input type="number" step="any" id="max_${r.k}" placeholder="max" aria-label="${r.lab} maximum"></div></div>`;
+}).join("");
+RANGES.forEach(r=>{["min","max"].forEach(side=>{
+  document.getElementById(`${side}_${r.k}`).addEventListener("input",e=>{
+    const v=e.target.value===""?null:+e.target.value;
+    S.rng[r.k]=S.rng[r.k]||{}; S.rng[r.k][side]=v; render();
+  });
+});});
+document.getElementById("q").addEventListener("input",e=>{S.q=e.target.value.trim().toLowerCase();render();});
+["multiOnly","netCash","patUp","hasProm","hasLi","starOnly"].forEach(id=>{
+  document.getElementById(id).addEventListener("change",e=>{ S[id==="multiOnly"?"multi":id]=e.target.checked; render(); });
+});
+document.querySelectorAll("#exch button").forEach(b=>b.onclick=()=>{
+  S.ex=b.dataset.v; document.querySelectorAll("#exch button").forEach(x=>x.setAttribute("aria-pressed",x===b)); render();
+});
+const ax=document.getElementById("ax"), ay=document.getElementById("ay");
+for(const [k,l] of Object.entries(AXES)){ ax.add(new Option(l,k)); ay.add(new Option(l,k)); }
+ax.value=S.ax; ay.value=S.ay;
+ax.onchange=()=>{S.ax=ax.value;drawScatter(current);};
+ay.onchange=()=>{S.ay=ay.value;drawScatter(current);};
+
+function setRange(k,min,max){ S.rng[k]={min,max}; document.getElementById("min_"+k).value=min??""; document.getElementById("max_"+k).value=max??""; }
+function setTog(id,val){ document.getElementById(id).checked=val; S[id==="multiOnly"?"multi":id]=val; }
+function resetAll(){
+  S.q=""; document.getElementById("q").value="";
+  S.verts.clear(); document.querySelectorAll("#vchips .chip").forEach(c=>c.setAttribute("aria-pressed","false"));
+  S.ex="all"; document.querySelectorAll("#exch button").forEach(x=>x.setAttribute("aria-pressed",x.dataset.v==="all"));
+  RANGES.forEach(r=>setRange(r.k,null,null));
+  ["multiOnly","netCash","patUp","hasProm","hasLi","starOnly"].forEach(id=>setTog(id,false));
+}
+document.querySelectorAll("[data-preset]").forEach(b=>b.onclick=()=>{
+  resetAll();
+  const p=b.dataset.preset;
+  if(p==="mandate"){ setRange("mc",40,130); setRange("p26",5,null); }
+  if(p==="clean"){ setRange("mc",40,130); setRange("p26",5,null); setRange("pr",50,null); setTog("netCash",true); }
+  if(p==="growth"){ setRange("p26",5,null); setTog("patUp",true); S.sort={k:"pg",dir:-1}; }
+  render();
+});
+
+// ---------- filtering ----------
+function filtered(){
+  return D.filter(d=>{
+    if(S.q){ const hay=(d.n+" "+d.t+" "+(d.ev||"")+" "+(d.seg||"")).toLowerCase(); if(!hay.includes(S.q)) return false; }
+    if(S.verts.size && !d.vn.some(v=>S.verts.has(v))) return false;
+    if(S.multi && d.vn.length<2) return false;
+    if(S.ex==="NSEI" && d.ex!=="NSEI") return false;
+    if(S.ex==="BSE" && d.ex!=="BSE") return false;
+    for(const [k,r] of Object.entries(S.rng)){
+      if(!r) continue;
+      if(r.min!=null && (d[k]==null || d[k]<r.min)) return false;
+      if(r.max!=null && (d[k]==null || d[k]>r.max)) return false;
+    }
+    if(S.netCash && !(d.nd!=null && d.nd<=0)) return false;
+    if(S.patUp && !(d.p26>d.p25)) return false;
+    if(S.hasProm && !(d.pr>0)) return false;
+    if(S.hasLi && !d.li.length) return false;
+    if(S.starOnly && !stars.has(d.n)) return false;
+    return true;
+  });
+}
+
+// ---------- KPIs ----------
+function drawKpis(rows){
+  const k=[
+    ["Companies",`${rows.length}<small> / ${D.length}</small>`, `${rows.filter(d=>d.fit).length} fit the mandate`],
+    ["Median market cap", rows.length?"₹"+fmt(median(rows.map(d=>d.mc)),0):"–", "₹ crore"],
+    ["Median P/E", rows.length?fmt(median(rows.map(d=>d.pe)),1)+"x":"–", "trailing, FY26 PAT"],
+    ["Median P/B", rows.length?fmt(median(rows.map(d=>d.pb)),2)+"x":"–", `${rows.filter(d=>d.pb!=null&&d.pb<1).length} below book`],
+    ["Median promoter", rows.length?fmtP(median(rows.map(d=>d.pr)),0):"–", `${rows.filter(d=>!(d.pr>0)).length} with no promoter`],
+    ["Net cash", `${rows.filter(d=>d.nd!=null&&d.nd<=0).length}`, "companies with net debt ≤ 0"]
+  ];
+  document.getElementById("kpis").innerHTML=k.map(([a,b,c])=>`<div class="kpi"><span class="eyebrow">${a}</span><b>${b}</b><small>${c}</small></div>`).join("");
+}
+
+// ---------- vertical bars ----------
+function drawBars(rows){
+  const counts=VERTS.map(([full,short,c])=>({full,short,c,n:rows.filter(d=>d.vn.includes(full)).length})).sort((a,b)=>b.n-a.n);
+  const max=Math.max(1,...counts.map(c=>c.n));
+  document.getElementById("mixN").textContent=`${rows.length} companies`;
+  document.getElementById("bars").innerHTML=counts.map(c=>`<div class="bar" title="${esc(c.full)}"><div><div class="lab"><span>${c.short}</span><span class="na">${rows.length?Math.round(c.n/rows.length*100):0}%</span></div><div class="track"><div class="fill" style="width:${c.n/max*100}%;background:var(${c.c})"></div></div></div><span class="n">${c.n}</span></div>`).join("");
+}
+
+// ---------- scatter ----------
+const svg=document.getElementById("scatter"), tip=document.getElementById("tip");
+function nice(lo,hi,n=5){
+  if(lo===hi){lo-=1;hi+=1;}
+  const span=hi-lo, step0=span/n, mag=Math.pow(10,Math.floor(Math.log10(step0)));
+  const step=[1,2,2.5,5,10].map(m=>m*mag).find(s=>span/s<=n)||10*mag;
+  const a=Math.floor(lo/step)*step, b=Math.ceil(hi/step)*step, t=[];
+  for(let v=a; v<=b+step/2; v+=step) t.push(+v.toFixed(6));
+  return {a,b,t};
+}
+function drawScatter(rows){
+  const W=720,H=340,m={l:52,r:16,t:14,b:38};
+  const xs=rows.filter(d=>d[S.ax]!=null&&d[S.ay]!=null&&isFinite(d[S.ax])&&isFinite(d[S.ay]));
+  const src = xs.length?xs:D;
+  const X=nice(Math.min(0,...src.map(d=>d[S.ax])),Math.max(...src.map(d=>d[S.ax])));
+  const Y=nice(Math.min(0,...src.map(d=>d[S.ay])),Math.max(...src.map(d=>d[S.ay])));
+  const sx=v=>m.l+(v-X.a)/(X.b-X.a)*(W-m.l-m.r), sy=v=>H-m.b-(v-Y.a)/(Y.b-Y.a)*(H-m.t-m.b);
+  let s="";
+  if(S.ax==="mc"){ const x1=sx(Math.max(40,X.a)), x2=sx(Math.min(130,X.b)); if(x2>x1){ s+=`<rect class="bandr" x="${x1}" y="${m.t}" width="${x2-x1}" height="${H-m.t-m.b}"/><text class="bandt" x="${x1+5}" y="${m.t+12}">Mandate ₹40–130 cr</text>`; } }
+  Y.t.forEach(v=>{ s+=`<line class="grid" x1="${m.l}" x2="${W-m.r}" y1="${sy(v)}" y2="${sy(v)}"/><text x="${m.l-6}" y="${sy(v)+3}" text-anchor="end">${v.toLocaleString("en-IN")}</text>`; });
+  X.t.forEach(v=>{ s+=`<text x="${sx(v)}" y="${H-m.b+15}" text-anchor="middle">${v.toLocaleString("en-IN")}</text>`; });
+  s+=`<text x="${(m.l+W-m.r)/2}" y="${H-6}" text-anchor="middle">${esc(AXES[S.ax])}</text>`;
+  s+=`<text transform="translate(12 ${(m.t+H-m.b)/2}) rotate(-90)" text-anchor="middle">${esc(AXES[S.ay])}</text>`;
+  const ids=new Set(xs.map(d=>d.id));
+  D.filter(d=>d[S.ax]!=null&&d[S.ay]!=null&&isFinite(d[S.ax])&&isFinite(d[S.ay]))
+   .filter(d=>{const vx=d[S.ax],vy=d[S.ay];return vx>=X.a&&vx<=X.b&&vy>=Y.a&&vy<=Y.b;})
+   .sort((a,b)=>ids.has(a.id)-ids.has(b.id))
+   .forEach(d=>{
+    const cls=["dot"]; if(!ids.has(d.id)) cls.push("dim"); if(S.open===d.id) cls.push("hl");
+    s+=`<circle class="${cls.join(" ")}" data-id="${d.id}" cx="${sx(d[S.ax]).toFixed(1)}" cy="${sy(d[S.ay]).toFixed(1)}" r="${S.open===d.id?7:5.5}" fill="${VMAP[d.prim].col}"/>`;
+  });
+  svg.innerHTML=s;
+  svg.querySelectorAll(".dot").forEach(c=>{
+    const d=D[+c.dataset.id];
+    c.addEventListener("mousemove",e=>{ tip.hidden=false; tip.innerHTML=`<b>${esc(d.n)}</b><br>${esc(AXES[S.ax])}: ${plain(d[S.ax])}<br>${esc(AXES[S.ay])}: ${plain(d[S.ay])}`; tip.style.left=Math.min(e.clientX+12,innerWidth-270)+"px"; tip.style.top=(e.clientY+12)+"px"; });
+    c.addEventListener("mouseleave",()=>tip.hidden=true);
+    c.addEventListener("click",()=>{ openRow(d.id,true); });
+  });
+  const used=[...new Set(D.map(d=>d.prim))];
+  document.getElementById("legend").innerHTML=VERTS.filter(v=>used.includes(v[0])).map(v=>`<span><i style="background:var(${v[2]})"></i>${v[1]}</span>`).join("")+`<span class="na">Colour = largest vertical · faded = filtered out</span>`;
+}
+
+// ---------- table ----------
+const COLS=[
+  {k:"star",lab:"",l:true,nosort:true},
+  {k:"n",lab:"Company",l:true},
+  {k:"mc",lab:"Mkt cap"},
+  {k:"r24",lab:"Rev FY24"},
+  {k:"r25",lab:"Rev FY25"},
+  {k:"r26",lab:"Rev FY26"},
+  {k:"rg",lab:"Rev Δ"},
+  {k:"rg3",lab:"Rev 2yr CAGR"},
+  {k:"p24",lab:"PAT FY24"},
+  {k:"p25",lab:"PAT FY25"},
+  {k:"p26",lab:"PAT FY26"},
+  {k:"pg",lab:"PAT Δ"},
+  {k:"pg3",lab:"PAT 2yr CAGR"},
+  {k:"pm",lab:"PAT margin"},
+  {k:"pe",lab:"P/E"},
+  {k:"pb",lab:"P/B"},
+  {k:"roe",lab:"Impl. ROE"},
+  {k:"pr",lab:"Promoter"},
+  {k:"inst",lab:"Inst."},
+  {k:"nd",lab:"Net debt"},
+  {k:"ctrl",lab:"Cost to control"}
+];
+const thead=document.getElementById("thead");
+function drawHead(){
+  thead.innerHTML=COLS.map(c=>{
+    const act=S.sort.k===c.k;
+    return `<th class="${c.l?'l':''}" data-k="${c.k}" ${act?`aria-sort="${S.sort.dir>0?'ascending':'descending'}"`:''} ${c.nosort?'':'tabindex="0"'}>${c.lab}${act?`<span class="arr">${S.sort.dir>0?'▲':'▼'}</span>`:''}</th>`;
+  }).join("");
+  thead.querySelectorAll("th").forEach(th=>{
+    const k=th.dataset.k; if(COLS.find(c=>c.k===k).nosort) return;
+    const go=()=>{ S.sort = S.sort.k===k?{k,dir:-S.sort.dir}:{k,dir:k==="n"?1:-1}; render(); };
+    th.onclick=go; th.onkeydown=e=>{ if(e.key==="Enter"||e.key===" "){e.preventDefault();go();} };
+  });
+}
+function sortRows(rows){
+  const {k,dir}=S.sort;
+  return rows.slice().sort((a,b)=>{
+    const va=a[k], vb=b[k];
+    if(k==="n") return dir*va.localeCompare(vb);
+    if(va==null&&vb==null) return 0; if(va==null) return 1; if(vb==null) return -1;
+    return dir*(va-vb);
+  });
+}
+function vtags(d){
+  return d.v.map(([name,pct])=>`<span class="vt"><span class="dot" style="background:${VMAP[name]?.col||'var(--c4)'}"></span>${VMAP[name]?.short||esc(name)}${pct!=null?` ${pct}%`:''}</span>`).join("");
+}
+function detail(d){
+  const hold=[["Promoter",d.pr,"var(--c1)"],["Retail / public",d.rt,"var(--c4)"],["FII",d.fii,"var(--c2)"],["DII",d.dii,"var(--c3)"]];
+  const other=Math.max(0,100-hold.reduce((s,h)=>s+(h[1]||0),0));
+  return `<tr class="detail"><td colspan="${COLS.length}"><div class="dgrid">
+    <div>
+      <h4>Vertical classification evidence</h4>
+      <p>${esc(d.ev||"No evidence recorded.")}</p>
+      ${d.seg?`<h4>Internal segment split</h4><p>${esc(d.seg)}</p>`:""}
+    </div>
+    <div>
+      <h4>Financials (₹ cr)</h4>
+      <dl class="kv">
+        <dt>Revenue FY24 → FY25 → FY26</dt><dd>${fmt(d.r24)} → ${fmt(d.r25)} → ${fmt(d.r26)}</dd>
+        <dt>PAT FY24 → FY25 → FY26</dt><dd>${fmt(d.p24)} → ${fmt(d.p25)} → ${fmt(d.p26)}</dd>
+        <dt>Revenue 2yr CAGR</dt><dd>${fmtG(d.rg3)}</dd>
+        <dt>PAT 2yr CAGR</dt><dd>${fmtG(d.pg3)}</dd>
+        <dt>Gross debt</dt><dd>${fmt(d.gd)}</dd>
+        <dt>Cash</dt><dd>${fmt(d.cash)}</dd>
+        <dt>Net debt</dt><dd>${fmt(d.nd)}</dd>
+        <dt>Implied book value</dt><dd>${d.pb?fmt(d.mc/d.pb):'<span class="na">–</span>'}</dd>
+        <dt>Promoter stake value</dt><dd>${d.pr!=null?fmt(d.mc*d.pr/100):'<span class="na">–</span>'}</dd>
+        <dt>Indicative cost to control</dt><dd>${fmt(d.ctrl)}</dd>
+      </dl>
+    </div>
+    <div>
+      <h4>Shareholding</h4>
+      <div class="holdbar">${hold.map(h=>h[1]?`<i style="width:${h[1]}%;background:${h[2]}" title="${h[0]} ${h[1]}%"></i>`:"").join("")}${other>0.5?`<i style="width:${other}%;background:var(--line)" title="Other ${other.toFixed(1)}%"></i>`:""}</div>
+      <div class="legend">${hold.map(h=>`<span><i style="background:${h[2]}"></i>${h[0]} ${h[1]!=null?h[1].toFixed(1):'–'}%</span>`).join("")}</div>
+      <h4 style="margin-top:14px">Contacts</h4>
+      <div class="links">${d.li.length?d.li.map(u=>`<a href="${esc(u)}" target="_blank" rel="noopener">${esc(u.replace(/^https?:\/\/(www\.)?linkedin\.com\/in\//,"").replace(/[\/?].*$/,""))}</a>`).join(""):'<span class="na">None recorded</span>'}</div>
+    </div>
+  </div></td></tr>`;
+}
+function drawTable(rows){
+  const tb=document.getElementById("tbody");
+  document.getElementById("tblTitle").textContent=`Companies (${rows.length})`;
+  if(!rows.length){ tb.innerHTML=`<tr><td colspan="${COLS.length}" class="empty">No companies match these filters. Loosen a range or press Reset.</td></tr>`; return; }
+  tb.innerHTML=sortRows(rows).map(d=>{
+    const flags=[d.fit?'<span class="flag i">Mandate</span>':'', d.review?'<span class="flag w" title="Classification flagged for review in the source">Review</span>':'', d.oddPE?'<span class="flag w" title="P/E below 2x: PAT likely includes one-offs or associate income">Check PAT</span>':'', !(d.pr>0)?'<span class="flag w">No promoter</span>':''].join("");
+    return `<tr class="row ${d.fit?'fit':''} ${S.open===d.id?'open':''}" data-id="${d.id}">
+      <td class="l"><button class="star" type="button" aria-label="Shortlist ${esc(d.n)}" aria-pressed="${stars.has(d.n)}" data-star="${esc(d.n)}">★</button></td>
+      <td class="l" style="min-width:270px"><span class="cname">${esc(d.n)}</span><div class="cmeta"><span>${esc(d.t)}</span>${vtags(d)}${flags}</div></td>
+      <td>${fmt(d.mc)}</td><td>${fmt(d.r24)}</td><td>${fmt(d.r25)}</td><td>${fmt(d.r26)}</td><td>${fmtG(d.rg)}</td><td>${fmtG(d.rg3)}</td>
+      <td>${fmt(d.p24)}</td><td>${fmt(d.p25)}</td><td>${fmt(d.p26)}</td><td>${fmtG(d.pg)}</td><td>${fmtG(d.pg3)}</td>
+      <td>${fmtP(d.pm,0)}</td><td>${fmt(d.pe)}x</td><td>${d.pb==null?'<span class="na">–</span>':fmt(d.pb,2)+"x"}</td><td>${fmtP(d.roe,0)}</td>
+      <td>${fmtP(d.pr,0)}</td><td>${fmtP(d.inst,1)}</td><td class="${d.nd<=0?'pos':''}">${fmt(d.nd)}</td><td>${fmt(d.ctrl)}</td>
+    </tr>${S.open===d.id?detail(d):""}`;
+  }).join("");
+  tb.querySelectorAll("tr.row").forEach(tr=>tr.addEventListener("click",e=>{
+    if(e.target.closest("[data-star]")) return;
+    openRow(+tr.dataset.id,false);
+  }));
+  tb.querySelectorAll("[data-star]").forEach(b=>b.addEventListener("click",e=>{
+    e.stopPropagation(); const n=b.dataset.star;
+    stars.has(n)?stars.delete(n):stars.add(n); saveStars(); render();
+  }));
+}
+function openRow(id,scroll){
+  S.open = S.open===id && !scroll ? null : id; render();
+  if(scroll){ const tr=document.querySelector(`tr.row[data-id="${id}"]`); tr?.scrollIntoView({behavior:matchMedia("(prefers-reduced-motion: reduce)").matches?"auto":"smooth",block:"center"}); }
+}
+
+// ---------- copy ----------
+function toast(msg){ const t=document.getElementById("toast"); t.textContent=msg; t.hidden=false; clearTimeout(toast._t); toast._t=setTimeout(()=>t.hidden=true,2200); }
+document.getElementById("copyBtn").onclick=()=>{
+  const rows=sortRows(current);
+  const hdr=["Company","Ticker","Verticals","Mkt cap","Rev FY24","Rev FY25","Rev FY26","PAT FY24","PAT FY25","PAT FY26","P/E","P/B","Promoter %","Institutional %","Net debt","Cost to control","Mandate fit","Shortlisted"];
+  const lines=[hdr.join("\t")].concat(rows.map(d=>[d.n,d.t,d.v.map(v=>v[0]+(v[1]!=null?` (${v[1]}%)`:"")).join("; "),plain(d.mc),plain(d.r24),plain(d.r25),plain(d.r26),plain(d.p24),plain(d.p25),plain(d.p26),plain(d.pe),plain(d.pb,2),plain(d.pr),plain(d.inst),plain(d.nd),plain(d.ctrl),d.fit?"Yes":"",stars.has(d.n)?"Yes":""].join("\t")));
+  const txt=lines.join("\n");
+  navigator.clipboard.writeText(txt).then(()=>toast(`Copied ${rows.length} rows. Paste into Excel or email.`)).catch(()=>{
+    const ta=document.createElement("textarea"); ta.value=txt; document.body.appendChild(ta); ta.select();
+    try{ document.execCommand("copy"); toast(`Copied ${rows.length} rows.`);}catch(e){ toast("Copy was blocked. Select the table manually."); }
+    ta.remove();
+  });
+};
+
+// ---------- render ----------
+let current=D;
+function render(){
+  current=filtered();
+  const tw=document.querySelector('.tbl-wrap'); if(tw) document.documentElement.style.setProperty('--tw',tw.clientWidth+'px');
+  drawKpis(current); drawBars(current); drawScatter(current); drawHead(); drawTable(current);
+}
+render();
+addEventListener('resize',()=>{const tw=document.querySelector('.tbl-wrap'); if(tw) document.documentElement.style.setProperty('--tw',tw.clientWidth+'px');});
+</script>
+
+</body></html>
