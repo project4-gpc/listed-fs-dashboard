@@ -648,7 +648,7 @@ function ddProfile(x){
       <p class="note" style="margin:6px 0 12px">Source: ${esc(x.rev.conf[1])}. ${esc(x.rev.note)}</p>
       <h4>Debt · ₹${fmt(d.gross,2)} cr (FY25 ₹${fmt(d.prev,2)} cr) · ${esc(d.sec)} secured · ${esc(d.tenor)}</h4>
       ${d.fac.length?`<table class="facs"><thead><tr><th>Facility</th><th style="text-align:right">₹ cr</th><th>Lender</th><th>Secured by</th><th>Tenor</th></tr></thead><tbody>${d.fac.map(f=>`<tr><td>${esc(f[0])}</td><td class="num">${fmt(f[1],2)}</td><td>${esc(f[2])}</td><td>${esc(f[3])}</td><td>${esc(f[4])}</td></tr>`).join("")}</tbody></table>`:""}
-      <ul class="dnotes" style="margin-top:8px">${d.notes.map(t=>`<li>${esc(t)}</li>`).join("")}${d.obs&&d.obs!=="None found"&&d.obs!=="None disclosed"?`<li>Off balance sheet: ${esc(d.obs)}.</li>`:""}</ul>
+      <ul class="dnotes" style="margin-top:8px">${li(d.notes)}${d.obs&&d.obs!=="None found"&&d.obs!=="None disclosed"?`<li>Off balance sheet: ${esc(d.obs)}.</li>`:""}</ul>
       <h4 style="margin-top:14px">Credit rating</h4>
       ${(c.rated||[]).map(r=>`<p class="dnote"><b>${esc(r[0])}</b>: ${esc(r[2])} (${esc(r[1])}, ${esc(r[3])}) on ${esc(r[4])}</p>`).join("")}
       ${(c.path||[]).map(p=>`<p class="dnote"><span class="na">${esc(p[0])}:</span> ${esc(p[1])}</p>`).join("")}
