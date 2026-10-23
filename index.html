@@ -293,7 +293,8 @@ const MKT_KEYS = ["mc","pe","pb","r24","r25","r26","p24","p25","p26","pr","fii",
 const RAW = (window.RAW_BASE||[]).map(r=>{
   const m = MKT.co && MKT.co[r.t]; if(!m) return r;
   const o = {...r};
-  MKT_KEYS.forEach(k=>{ if(m[k]!=null) o[k]=m[k]; });
+  // Screener rounds figures above ~₹100 cr (and many FY totals) to whole crores; keep the more precise base value when it rounds to the same number.
+  MKT_KEYS.forEach(k=>{ if(m[k]==null) return; if(k!=="mc" && Number.isInteger(m[k]) && r[k]!=null && Math.abs(r[k]-m[k])<1) return; o[k]=m[k]; });
   if(m.fii!=null || m.dii!=null) o.inst = +((o.fii||0)+(o.dii||0)).toFixed(2);
   if(m.gd!=null && r.cash!=null) o.nd = +(m.gd - r.cash).toFixed(2);
   return o;
