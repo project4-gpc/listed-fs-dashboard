@@ -283,9 +283,10 @@ footer{color:var(--muted);font-size:12px;margin-top:20px;max-width:100ch}
 <div class="tip" id="tip" hidden></div>
 <div class="toast" id="toast" hidden></div>
 
-<script src="data.js"></script>
-<script src="market.js"></script>
-<script src="diligence.js"></script>
+<script>
+// Always fetch the latest data files (GitHub Pages lets browsers cache them for 10 minutes otherwise).
+["data.js","market.js","diligence.js"].forEach(f=>document.write('<script src="'+f+'?v='+Date.now()+'"><\/script>'));
+</script>
 <script>
 // Base long list (data.js) overlaid with the daily Screener refresh (market.js).
 const MKT = window.MKT || {asof:null, co:{}};
