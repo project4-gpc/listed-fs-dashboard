@@ -326,7 +326,7 @@ const D = RAW.map((r,i)=>{
     roe: (r.pb&&r.pe)? r.pb/r.pe*100 : null,
     ctrl: ctrlPct==null||r.mc==null?null:r.mc*ctrlPct/100,
     fit: r.mc>=40 && r.mc<=130 && r.p26>=5,
-    review: /flagged for review/i.test(r.ev||""),
+    review: !!r.rv || /flagged for review/i.test(r.ev||""),
     oddPE: r.pe!=null && r.pe<2
   };
 });
