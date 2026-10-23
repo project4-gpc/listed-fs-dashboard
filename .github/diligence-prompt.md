@@ -22,9 +22,12 @@ Append one object to `window.DD` in `diligence.js`, following the exact shape of
 - `line`: one sentence, under 120 characters.
 - `px`: `{mc, pb, pr, date}`.
 - `rev`: `{total, conf:[level, source], parts:[[key,label,amount],...], note}`. Part keys: brk, dist, ib, int, trd, oth.
-- `debt`: `{gross, prev, de, sec, tenor, rating:[label,tone], obs, fac:[[facility, amount, lender, security, tenor],...], notes:[...]}`.
+- `debt`: `{gross, prev, de, sec, tenor, obs, fac:[[facility, amount, lender, security, tenor],...], notes:[...]}`.
+- `credit`: `{rating:[label,tone], rated:[[entity, agency, rating, date, facility],...], path:[[agency, "history → history"],...], take}`. Cover the listed company AND its subsidiaries and associates; a rated subsidiary often has the most detail. Use "Not rated" when nothing exists and say what you checked.
 - `score`: `{profit:[label,tone,"FY23 · FY24 · FY25 · FY26 PAT"], debt:[label,tone,detail], reg:[label,tone,detail], prom:[pct, holder]}`.
-- `dd`: 4–7 bullets. Lead with a short bold label, then the fact and the number. Brief and pointed; no filler.
+- `str` and `wk`: 3–5 strengths and 3–5 weaknesses each, our own view. Mine the rating rationales' key strengths and weaknesses (operations, financial risk, promoter, liquidity) and tag those points with the agency name, but add anything else that matters to the investing team.
+- `dd`: 3–7 items to diligence: open questions, governance and promoter issues, approvals. Lead with a short bold label, then the fact and the number. Brief and pointed; no filler.
+- Equity research: check quickly for broker coverage; if none, do not spend time on it.
 - `src`: [[label, url], ...].
 
 Tone: g good, w watch, b bad, n neutral. Keep every string short. Update `DD_META.asof` if you refresh prices. Do not change `index.html`. When done, reply on the issue with a 3–5 line summary of the verdict and the main flags.
