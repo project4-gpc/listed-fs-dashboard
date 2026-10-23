@@ -57,7 +57,7 @@ window.DD = [
   ],
   wk: [
     "<b>Thin margins:</b> 68% of broking income goes to sub-brokers; profit flat while total income rose 9% in FY26.",
-    "<b>Other income doing heavy lifting:</b> ₹8.9 cr of interest on deposits, much of it on client money, against PBT of ₹13.5 cr.",
+    "<b>Other income doing heavy lifting:</b> ₹8.9 cr of interest on bank deposits against PBT of ₹13.5 cr; with ₹122.8 cr of client-related liabilities, part of this is likely earned on client balances.",
     "<b>Falling promoter stake:</b> 58.1% (Mar-22) to 46.8%, spread across four family members."
   ],
   dd: [
@@ -81,7 +81,7 @@ window.DD = [
     take: "No credit rating under Nexome or its former name, SMIFS Capital Markets, and no rating filings on BSE." },
   score: { pat: [0.51, 2.41, 1.17, 10.71], profit: ["Lumpy", "b"], debt: [3.54, "Low", "g"], reg: ["SEBI only", "g", "Cat-I merchant banker"], prom: ["51.8%", "Parekh family"] },
   str: [
-    "<b>Light balance sheet:</b> only vehicle loans; promoters have put in fresh equity (₹31 cr across FY26–27).",
+    "<b>Light balance sheet:</b> only vehicle loans; raised ₹31 cr of fresh equity across FY26–27 (rights issue and warrant conversion).",
     "<b>IB capability:</b> ₹44.8 cr of investment banking fees in FY26.",
     "<b>Low valuation:</b> 0.36x book; dividend restarted (₹1.50 a share)."
   ],
@@ -136,7 +136,7 @@ window.DD = [
     "<b>Receivables of ₹119 cr</b> (about 795 days of revenue) with no credit-loss provision.",
     "<b>Rating conduct:</b> withdrew from CARE after three downgrades; in Mar-24 stopped sharing information and paying fees, so both group ratings went to 'issuer not cooperating'.",
     "<b>Encumbrances:</b> ~43% of promoter shares pledged; ₹120 cr personal guarantee would need replacing.",
-    "<b>Related parties:</b> ₹53 cr lent to and repaid by the associate during the year; dealings with about 20 promoter-linked LLPs and companies.",
+    "<b>Related parties:</b> borrowed ₹53 cr from the associate and repaid it within the year; dealings with about 20 promoter-linked LLPs and companies.",
     "<b>Pioneer Fundinvest's status:</b> listed in an NBFC directory as RBI-registered, but Infomerics calls it a SEBI-registered dealer. Confirm; an NBFC needs RBI approval for a change of control."
   ],
   src: [["AR FY26", "https://www.bseindia.com/xml-data/corpfiling/AttachHis/45430ad9-1049-4ed7-944d-cd085753c7d9.pdf"], ["Infomerics Dec-25", "https://www.infomerics.com/admin/uploads/PR_Pioneer_Investcorp10Dec25.pdf"], ["Infomerics Sep-24", "https://infomericstorage.blob.core.windows.net/uploads/pr_Pioneer_Investcorp_13sep24_76491e04df.pdf"], ["Fundinvest Sep-24", "https://infomericstorage.blob.core.windows.net/uploads/pr_Pioneer_Fundinvest_13sep24_925d3c70c5.pdf"], ["Fundinvest Jan-23", "https://infomericstorage.blob.core.windows.net/uploads/pr_Pioneer_Fundinvest_24jan23_34b10e04c5.pdf"], ["Infomerics Mar-24", "https://www.infomerics.com/admin/uploads/pr-Pioneer-Investcorp-19mar24.pdf"], ["Infomerics Jul-22", "https://www.infomerics.com/admin/uploads/pr-Pioneer-Investcorp-8july22.pdf"], ["CARE Mar-22", "https://www.careratings.com/upload/CompanyFiles/PR/29032022064204_Pioneer_Investcorp_Limited.pdf"], ["Screener", "https://www.screener.in/company/507864/consolidated/"]]
