@@ -1,0 +1,56 @@
+name: Shortlist diligence
+
+# Runs when an issue is labelled "diligence" (the dashboard's "Request diligence" link opens one).
+on:
+  issues:
+    types: [opened, labeled]
+
+permissions:
+  contents: write
+  issues: write
+  id-token: write
+
+concurrency:
+  group: diligence
+  cancel-in-progress: false
+
+jobs:
+  research:
+    if: contains(github.event.issue.labels.*.name, 'diligence') && contains(fromJSON('["OWNER","MEMBER","COLLABORATOR"]'), github.event.issue.author_association)
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install PDF tools
+        run: sudo apt-get update -y && sudo apt-get install -y poppler-utils
+
+      - name: Research and update diligence.js
+        uses: anthropics/claude-code-action@v1
+        with:
+          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          prompt: |
+            Issue #${{ github.event.issue.number }}: ${{ github.event.issue.title }}
+            Follow .github/diligence-prompt.md exactly for the company named in the issue title.
+          claude_args: |
+            --model claude-opus-5-5
+            --max-turns 120
+            --allowedTools "WebSearch,WebFetch,Read,Edit,Write,Grep,Glob,Bash(curl:*),Bash(pdftotext:*),Bash(grep:*),Bash(node:*),Bash(ls:*),Bash(mkdir:*),Bash(gh issue comment:*)"
+
+      - name: Check data file still parses
+        run: node -e "global.window={};require('./diligence.js');if(!Array.isArray(window.DD))process.exit(1);console.log(window.DD.length+' companies')"
+
+      - name: Commit
+        run: |
+          git config user.name "diligence-bot"
+          git config user.email "diligence-bot@users.noreply.github.com"
+          git add diligence.js
+          git diff --cached --quiet && echo "No changes" && exit 0
+          git commit -m "Diligence: ${{ github.event.issue.title }}"
+          git push
+
+      - name: Close issue
+        if: success()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh issue close ${{ github.event.issue.number }} --repo ${{ github.repository }} --comment "Added to the Shortlist diligence tab."

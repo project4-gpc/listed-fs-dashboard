@@ -1,0 +1,34 @@
+name: Daily market refresh
+
+# 4:00 PM IST (10:30 UTC), Monday to Friday. GitHub can start scheduled runs a few minutes late.
+on:
+  schedule:
+    - cron: "30 10 * * 1-5"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: market
+  cancel-in-progress: false
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Pull prices and financials from Screener
+        run: node scripts/update-market.mjs
+      - name: Commit
+        run: |
+          git config user.name "market-bot"
+          git config user.email "market-bot@users.noreply.github.com"
+          git add market.js
+          git diff --cached --quiet && echo "No changes" && exit 0
+          git commit -m "Market refresh $(TZ=Asia/Kolkata date +'%d %b %Y')"
+          git push
