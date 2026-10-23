@@ -15,7 +15,7 @@ window.DD = [
     fac: [["Bank overdraft", 13.44, "Bank", "Pledge of fixed deposits", "Short-term"],
           ["Bank overdraft", 5.45, "Bank", "Mortgage of company's property", "Short-term"],
           ["Vehicle loan", 0.64, "Bank", "Hypothecation of vehicle", "Term"]],
-    notes: ["Funds the margin-trading book: ₹34.6 cr of client loans secured by pledged shares, up from ₹25.2 cr. Operating cash flow was −₹7.2 cr (FY25) and −₹7.4 cr (FY26).", "₹18.8 cr of its ₹36.6 cr fixed deposits are pledged for the overdraft and bank guarantees.", "Drew and repaid a ₹4 cr line of credit from SKP Commodities (promoter group) during FY26."] },
+    notes: ["Funds the margin-trading book: ₹34.6 cr of client loans secured by pledged shares, up from ₹25.2 cr. Operating cash flow was −₹7.2 cr (FY25) and −₹7.4 cr (FY26).", "All ₹36.6 cr of fixed deposits are pledged: ₹17.75 cr with exchanges for margin and ₹18.84 cr with the bank for the overdraft and guarantees.", "Drew and repaid a ₹4 cr line of credit from SKP Commodities (promoter group) during FY26."] },
   credit: { rating: ["Not rated", "n"], rated: [], path: [],
     take: "No credit rating. The FY26 report says none is required as it has no listed debt; banks lend against FDs and property." },
   score: { pat: [3.10, 8.65, 9.99, 10.35], profit: ["Stable, growing", "g"], debt: [19.53, "Low", "g"], reg: ["SEBI only", "g", "Broker, DP, merchant banker"], prom: ["74.99%", "Pachisia family"] },
@@ -26,7 +26,7 @@ window.DD = [
     "<b>Clean structure:</b> no subsidiaries, no regulatory penalties in three years, pays a dividend (₹2 a share)."
   ],
   wk: [
-    "<b>Tied to markets:</b> 81% of revenue moves with trading volumes and fund flows. Q1 FY27 PAT ₹2.24 cr vs ₹2.85 cr a year earlier.",
+    "<b>Tied to markets:</b> 80% of revenue moves with trading volumes and fund flows. Q1 FY27 PAT ₹2.24 cr vs ₹2.85 cr a year earlier.",
     "<b>Margin book on borrowed money:</b> overdraft went from nil (FY24) to ₹19.5 cr; operating cash flow negative two years running.",
     "<b>Small and regional:</b> ₹41 cr revenue, 71 staff, Kolkata-based and family-run."
   ],
@@ -44,7 +44,7 @@ window.DD = [
   rev: { total: 63.32, conf: ["High", "AR FY26 consolidated notes 23–24"],
     parts: [["brk", "Broking", 41.74], ["oth", "Other operating revenue (margin funding, depository, MF; not broken out)", 12.06], ["int", "Interest on bank deposits", 8.91], ["oth", "Management fees 0.39, trading 0.20, other 0.02", 0.61]],
     note: "Sub-broker share of brokerage was ₹28.5 cr, 68% of broking income, so most of the gross revenue is passed on. 75 employees." },
-  debt: { gross: 0, prev: 0, nw: 79.4, sec: "n/a", tenor: "n/a", obs: "None (contingent liabilities nil)",
+  debt: { gross: 0, prev: 0, nw: 79.0, sec: "n/a", tenor: "n/a", obs: "None (contingent liabilities nil)",
     fac: [],
     notes: ["No borrowings at any year-end FY23–FY26; the FY26 report confirms no external borrowings and nil contingent liabilities.", "Cash and bank balances of ₹82.1 cr sit against ₹122.8 cr of other current financial liabilities, which are mostly client money."] },
   credit: { rating: ["Not rated", "n"], rated: [], path: [],
@@ -52,7 +52,7 @@ window.DD = [
   score: { pat: [7.58, 10.53, 9.46, 9.44], profit: ["Stable, flat", "w"], debt: [0, "Nil", "g"], reg: ["SEBI only", "g", "Broker; merchant banker Oct-26"], prom: ["46.8%", "Rathi family, falling"] },
   str: [
     "<b>No debt</b> and nil contingent liabilities.",
-    "<b>Steady earnings:</b> PAT ₹9.4–10.5 cr in each of the last three years; pays a dividend.",
+    "<b>Steady earnings:</b> PAT ₹9.4–10.5 cr in each of the last three years; pays a dividend (₹0.50 a share for FY26).",
     "<b>New IB licence:</b> SEBI merchant banker registration granted in Oct-26 adds a fee line."
   ],
   wk: [
@@ -69,14 +69,14 @@ window.DD = [
 },
 {
   n: "Nexome Capital Markets Limited", short: "Nexome", rank: 3, verdict: ["Low debt, lumpy profit", "w"],
-  line: "Only debt is vehicle loans; FY26 profit came from one large IB year and was cut by a ₹13 cr loan write-off.",
+  line: "Only debt is vehicle loans; FY26 profit came from one large IB year, cut by a ₹13 cr loan write-off; ₹32 cr still lent out.",
   px: { mc: 75.2, pb: 0.36, pr: 51.81, date: "23 Oct 2026" },
   rev: { total: 50.97, conf: ["High", "AR FY26 consolidated notes 25–26, 49"],
     parts: [["ib", "Investment banking", 44.84], ["trd", "Sale of shares and securities (gross)", 3.21], ["int", "Interest on loans 1.98, investment gains and other income", 2.92]],
     note: "The mix flips year to year: in FY25, 83% of revenue was sale of securities and 6% investment banking. 24 employees." },
   debt: { gross: 3.54, prev: 3.00, nw: 172, sec: "100%", tenor: "Vehicle loans, up to 5 yrs", obs: "None (contingent liabilities nil)",
     fac: [["Vehicle loans", 3.54, "HDFC Bank, ICICI Bank, BMW Financial Services", "Hypothecation of vehicles", "36–60 monthly instalments"]],
-    notes: ["Plus a ₹0.56 cr lease liability. Screener shows ₹7 cr; the audited note shows ₹3.54 cr, of which ₹1.19 cr falls due within a year.", "Funded by equity instead: a ₹22 cr rights issue (Mar-26) and ₹9.2 cr on warrant conversion (Apr-26)."] },
+    notes: ["₹1.19 cr of the vehicle loans falls due within a year. There are also ₹3.32 cr of lease liabilities, which is why Screener shows about ₹7 cr of debt.", "Funded by equity instead: a ₹22 cr rights issue (Mar-26) and ₹9.2 cr on warrant conversion (Apr-26).", "On the asset side it has ₹32.4 cr of loans to unrelated parties (₹30.4 cr after a 6% provision)."] },
   credit: { rating: ["Not rated", "n"], rated: [], path: [],
     take: "No credit rating under Nexome or its former name, SMIFS Capital Markets, and no rating filings on BSE." },
   score: { pat: [0.51, 2.41, 1.17, 10.71], profit: ["Lumpy", "b"], debt: [3.54, "Low", "g"], reg: ["SEBI only", "g", "Cat-I merchant banker"], prom: ["51.8%", "Parekh family"] },
@@ -87,11 +87,11 @@ window.DD = [
   ],
   wk: [
     "<b>Lumpy profit:</b> PAT ₹0.5 cr, ₹2.4 cr, ₹1.2 cr, then ₹10.7 cr in FY26; ₹9.5 cr of that came in Q4. Q1 FY27 was ₹1.3 cr.",
-    "<b>Credit losses:</b> wrote off a ₹13.0 cr loan in FY26 after an arbitration ruling, plus a ₹1.5 cr provision and a ₹1.9 cr exceptional charge.",
-    "<b>Book value volatility:</b> a ₹16.4 cr unrealised loss on equity investments made FY26 total comprehensive income −₹3.8 cr."
+    "<b>Lending losses:</b> wrote off a ₹13.0 cr loan in FY26 after an arbitration ruling, and took a ₹1.94 cr exceptional charge, a 6% ad hoc provision on the ₹32.4 cr of loans still outstanding.",
+    "<b>Book value volatility:</b> a ₹16.4 cr unrealised loss on equity investments, plus a ₹1.47 cr expected-credit-loss charge on the investment portfolio, made FY26 total comprehensive income −₹3.8 cr."
   ],
   dd: [
-    "<b>The written-off loan:</b> who was the borrower, why a capital-markets firm was lending ₹13 cr, and whether other loans remain.",
+    "<b>Loan book:</b> who borrowed the written-off ₹13 cr, who holds the remaining ₹32.4 cr, and why a capital-markets firm lends at this scale. Trade receivables also rose from ₹0.28 cr to ₹9.86 cr.",
     "<b>Q4 FY26 deal fees:</b> one mandate or several, and whether they repeat. Professional fees also jumped to ₹5.8 cr.",
     "<b>Promoter group:</b> the Kayan group (9.5%) moved to public in Sep-25; the Parekh family now leads. BSE fined it for a corporate governance report error.",
     "<b>Bombay High Court deposit</b> of ₹0.59 cr: nature of the dispute."
@@ -148,14 +148,14 @@ window.DD = [
   rev: { total: 33.78, conf: ["High", "AR FY26 consolidated note 35; AOC-1"],
     parts: [["brk", "Brokerage, consultancy and auxiliary services", 27.40], ["trd", "Securities trading (net of ₹525 cr purchases)", 5.67], ["oth", "Other operating revenue 0.27, other income 0.44", 0.71]],
     note: "The report does not split brokerage by business. By subsidiary (AOC-1), RR Insurance Brokers is the main earner: ₹8.1 cr turnover, ₹3.5 cr PAT. RR Investors Capital Services had ₹16.9 cr turnover but ₹0.2 cr PAT." },
-  debt: { gross: 13.95, prev: 12.03, nw: 54.9, sec: "~100%", tenor: "Term loan, part current", obs: "Claims against company ₹1.9 cr (contingent)",
+  debt: { gross: 13.97, prev: 12.04, nw: 54.9, sec: "~100%", tenor: "Term loan, part current", obs: "Claims against company ₹1.9 cr (contingent)",
     fac: [["Term loan", 13.39, "AU Small Finance Bank (₹9.37 cr current, ₹4.02 cr non-current)", "Book debts, current and movable assets; mortgage of an associate's property; directors' personal guarantees", "Term"],
           ["Vehicle loan", 0.52, "HDFC Bank", "Hypothecation of vehicle", "Term"],
           ["Other loans", 0.04, "Not stated", "Unsecured", "Not stated"]],
-    notes: ["The listed company and an associate are co-borrowers on the AU Bank loan.", "Contingent liability: ₹1.9 cr of client claims in a government-guaranteed bond dispute where RR is a party."] },
+    notes: ["Balance sheet total ₹13.97 cr; the facility notes add up to ₹13.95 cr.", "The listed company and an associate are co-borrowers on the AU Bank loan.", "Contingent liability: ₹1.9 cr of client claims in a government-guaranteed bond dispute where RR is a party."] },
   credit: { rating: ["Not rated", "n"], rated: [], path: [],
     take: "No credit rating for the listed company or for RR Fincap, RR Investors Capital Services or RR Insurance Brokers." },
-  score: { pat: [0.59, 0.43, 2.85, 8.09], profit: ["New and lumpy", "b"], debt: [13.95, "Moderate", "w"], reg: ["Parent is NBFC", "b", "Plus IRDAI broker"], prom: ["74.87%", "Prasad family"] },
+  score: { pat: [0.59, 0.43, 2.85, 8.09], profit: ["New and lumpy", "b"], debt: [13.97, "Moderate", "w"], reg: ["Parent is NBFC", "b", "Plus IRDAI broker"], prom: ["74.87%", "Prasad family"] },
   str: [
     "<b>Broad licence set:</b> stock broking, MF distribution and insurance broking across the group.",
     "<b>Insurance broker</b> is the most profitable unit (₹3.5 cr PAT on ₹8.1 cr turnover).",
