@@ -141,6 +141,11 @@ footer{color:var(--muted);font-size:12px;margin-top:20px;max-width:100ch}
 .pill.g{color:var(--good);border-color:currentColor} .pill.w{color:var(--warn);border-color:currentColor} .pill.b{color:var(--bad);border-color:currentColor} .pill.n{color:var(--muted);border-color:var(--line)}
 .ddtbl{min-width:1000px}
 .ddtbl .cname .pill{margin-left:6px;vertical-align:1px}
+.ddtbl td{vertical-align:top}
+.ddtbl .v{display:block;font-family:var(--f-body);font-size:14.5px;font-weight:600;font-variant-numeric:tabular-nums lining-nums;color:var(--ink);white-space:nowrap;margin-bottom:4px}
+.ddtbl .v .dot-sep{color:var(--muted);font-weight:400;margin:0 5px}
+.ddtbl .s + .pill{margin-top:5px}
+.sw{display:inline-block;width:8px;height:8px;border-radius:2px;margin-right:7px;vertical-align:0}
 .dnote{margin:0 0 4px;font-size:12.5px;max-width:72ch}
 .srcl{display:flex;flex-wrap:wrap;gap:4px 12px;font-size:12px}
 .srcl a{color:var(--accent)}
@@ -290,8 +295,10 @@ const RAW = (window.RAW_BASE||[]).map(r=>{
   const o = {...r};
   // Screener rounds figures above ~₹100 cr (and many FY totals) to whole crores; keep the more precise base value when it rounds to the same number.
   MKT_KEYS.forEach(k=>{ if(m[k]==null) return; if(k!=="mc" && Number.isInteger(m[k]) && r[k]!=null && Math.abs(r[k]-m[k])<1) return; o[k]=m[k]; });
+  // Borrowings: Screener's figure folds in leases; keep the audited figure in data.js whenever one is recorded.
+  if(r.gd!=null) o.gd=r.gd;
   if(m.fii!=null || m.dii!=null) o.inst = +((o.fii||0)+(o.dii||0)).toFixed(2);
-  if(m.gd!=null && r.cash!=null) o.nd = +(m.gd - r.cash).toFixed(2);
+  if(o.gd!=null && r.cash!=null) o.nd = +(o.gd - r.cash).toFixed(2);
   return o;
 });
 const VERTS = [
@@ -638,11 +645,11 @@ function ddProfile(x){
   const li=a=>(a||[]).map(t=>`<li>${t}</li>`).join("");
   return `<div class="dgrid">
     <div>
-      <h4>Revenue · FY26 · ₹${fmt(x.rev.total)} cr</h4>
-      ${stack(x.rev)}
-      <p class="note" style="margin:6px 0 12px"><span class="conf ${x.rev.conf[0]}">${esc(x.rev.conf[0])}</span> · ${esc(x.rev.conf[1])}. ${esc(x.rev.note)}</p>
-      <h4>Debt · ₹${fmt(d.gross)} cr (FY25 ${fmt(d.prev)}) · ${esc(d.sec)} secured · ${esc(d.tenor)}</h4>
-      ${d.fac.length?`<table class="facs"><thead><tr><th>Facility</th><th style="text-align:right">₹ cr</th><th>Lender</th><th>Secured by</th><th>Tenor</th></tr></thead><tbody>${d.fac.map(f=>`<tr><td>${esc(f[0])}</td><td class="num">${fmt(f[1])}</td><td>${esc(f[2])}</td><td>${esc(f[3])}</td><td>${esc(f[4])}</td></tr>`).join("")}</tbody></table>`:""}
+      <h4>Total income · FY26 · ₹${fmt(x.rev.total,2)} cr</h4>
+      <table class="facs"><tbody>${x.rev.parts.map(p=>`<tr><td><span class="sw" style="background:${PART[p[0]][1]}"></span>${esc(p[1])}</td><td class="num">${fmt(p[2],2)}</td><td class="num">${Math.round(p[2]/x.rev.total*100)}%</td></tr>`).join("")}</tbody></table>
+      <p class="note" style="margin:6px 0 12px">Source: ${esc(x.rev.conf[1])}. ${esc(x.rev.note)}</p>
+      <h4>Debt · ₹${fmt(d.gross,2)} cr (FY25 ₹${fmt(d.prev,2)} cr) · ${esc(d.sec)} secured · ${esc(d.tenor)}</h4>
+      ${d.fac.length?`<table class="facs"><thead><tr><th>Facility</th><th style="text-align:right">₹ cr</th><th>Lender</th><th>Secured by</th><th>Tenor</th></tr></thead><tbody>${d.fac.map(f=>`<tr><td>${esc(f[0])}</td><td class="num">${fmt(f[1],2)}</td><td>${esc(f[2])}</td><td>${esc(f[3])}</td><td>${esc(f[4])}</td></tr>`).join("")}</tbody></table>`:""}
       <ul class="dnotes" style="margin-top:8px">${d.notes.map(t=>`<li>${esc(t)}</li>`).join("")}${d.obs&&d.obs!=="None found"&&d.obs!=="None disclosed"?`<li>Off balance sheet: ${esc(d.obs)}.</li>`:""}</ul>
       <h4 style="margin-top:14px">Credit rating</h4>
       ${(c.rated||[]).map(r=>`<p class="dnote"><b>${esc(r[0])}</b>: ${esc(r[2])} (${esc(r[1])}, ${esc(r[3])}) on ${esc(r[4])}</p>`).join("")}
@@ -670,25 +677,25 @@ function drawDD(){
   const COLN=9;
   el.innerHTML=`
   <div class="card">
-    <div class="card-h"><h2>Revenue mix · FY26</h2><span class="eyebrow">₹ crore · share of revenue</span></div>
+    <div class="card-h"><h2>Revenue mix · FY26</h2><span class="eyebrow">₹ crore · share of total income · from annual report notes</span></div>
     <div class="revrows">${ddRows.map(({x})=>`<div class="revrow"><div class="nm">${esc(x.short)}<small><span class="conf ${x.rev.conf[0]}">${esc(x.rev.conf[0])}</span> · ${esc(x.rev.conf[1])}</small></div>${stack(x.rev)}<div class="tot">${fmt(x.rev.total)}</div></div>`).join("")}</div>
   </div>
 
   <div class="card tbl-card">
-    <div class="card-h"><h2>Shortlist (${ddRows.length})</h2><div class="presets"><span class="eyebrow">₹ crore · PAT FY23 · FY24 · FY25 · FY26 · prices ${esc(MKT.asof||DDMETA.asof||"")}</span><button class="btn" type="button" id="ddAll">${allOpen?"Collapse all":"Expand all"}</button></div></div>
-    <div class="tbl-wrap"><table class="ddtbl"><thead><tr><th class="l">Company</th><th class="l">Profit</th><th class="l">Debt</th><th class="l">Rating</th><th class="l">Regulator</th><th class="l">Promoter</th><th>Mkt cap</th><th>P/B</th><th>Cost to control</th></tr></thead>
+    <div class="card-h"><h2>Shortlist (${ddRows.length})</h2><div class="presets"><span class="eyebrow">₹ crore · consolidated, audited · prices ${esc(MKT.asof||DDMETA.asof||"")}</span><button class="btn" type="button" id="ddAll">${allOpen?"Collapse all":"Expand all"}</button></div></div>
+    <div class="tbl-wrap"><table class="ddtbl"><thead><tr><th class="l">Company</th><th class="l">PAT FY23 · 24 · 25 · 26</th><th class="l">Gross debt FY26</th><th class="l">Credit rating</th><th class="l">Regulator</th><th class="l">Promoter</th><th>Mkt cap</th><th>P/B</th><th>Cost to control</th></tr></thead>
     <tbody>${ddRows.map(({x},i)=>`<tr class="row ${S.ddOpen.has(i)?'open':''}" data-ddi="${i}" id="dd-${esc(x.short.replace(/\W+/g,'-'))}">
       <td class="l" style="min-width:280px"><span class="cname"><span class="na">${x.rank}.</span> ${esc(x.short)} ${pill(x.verdict)}</span><span class="s">${esc(x.line)}</span></td>
-      <td class="l">${pill(x.score.profit)}<span class="s">${esc(x.score.profit[2])}</span></td>
-      <td class="l">${pill(x.score.debt)}<span class="s">${esc(x.score.debt[2])}</span></td>
-      <td class="l">${pill(x.credit&&x.credit.rating)}</td>
+      <td class="l"><span class="v">${x.score.pat.map(v=>fmt(v)).join('<span class="dot-sep">·</span>')}</span>${pill(x.score.profit)}</td>
+      <td class="l"><span class="v">${x.debt.gross?`₹${fmt(x.debt.gross)} cr`:"Nil"}</span><span class="s">${x.debt.nw?`${fmt(x.debt.gross/x.debt.nw,2)}x net worth`:""}</span>${pill([x.score.debt[1],x.score.debt[2]])}</td>
+      <td class="l"><span class="v">${esc(x.credit.rating[0])}</span><span class="s">${x.credit.rated.length?esc(x.credit.rated[0][1]):"No rating on record"}</span></td>
       <td class="l">${pill(x.score.reg)}<span class="s">${esc(x.score.reg[2])}</span></td>
-      <td class="l">${esc(x.score.prom[0])}<span class="s">${esc(x.score.prom[1])}</span></td>
-      <td>${fmt(x.px.mc)}</td><td>${fmt(x.px.pb,2)}x</td><td>${fmt(ctrlOf(x))}</td></tr>${S.ddOpen.has(i)?`<tr class="detail"><td colspan="${COLN}">${ddProfile(x)}</td></tr>`:""}`).join("")}
+      <td class="l"><span class="v">${esc(x.score.prom[0])}</span><span class="s">${esc(x.score.prom[1])}</span></td>
+      <td><span class="v">${fmt(x.px.mc)}</span></td><td><span class="v">${fmt(x.px.pb,2)}x</span></td><td><span class="v">${fmt(ctrlOf(x))}</span></td></tr>${S.ddOpen.has(i)?`<tr class="detail"><td colspan="${COLN}">${ddProfile(x)}</td></tr>`:""}`).join("")}
     ${pending.map(d=>`<tr class="pend"><td class="l"><span class="cname">${esc(d.n)}</span></td><td class="l" colspan="${COLN-1}">Shortlisted, diligence not run yet. <a href="${issueUrl(d)}" target="_blank" rel="noopener">Request diligence</a></td></tr>`).join("")}</tbody></table></div>
   </div>
 
-  <footer>Click a company for revenue lines, debt facilities, credit rating history, strengths, weaknesses and items to diligence. Cost to control = market cap × (promoter stake + 26% open offer), capped at 100%, no premium. Revenue confidence: High = audited AR note; Medium = aggregator line items. Equity research: no broker coverage found for any of these companies. Star a company in the Screener to add it here, then use Request diligence.</footer>`;
+  <footer>Click a company for revenue lines, debt facilities, credit rating history, strengths, weaknesses and items to diligence. All financials are consolidated FY26 figures from the audited annual reports (SKP has no subsidiaries, so standalone). Market cap and P/B refresh daily from Screener. Cost to control = market cap × (promoter stake + 26% open offer), capped at 100%, no premium. Equity research: no broker coverage found for any of these companies. Star a company in the Screener to add it here, then use Request diligence.</footer>`;
   el.querySelectorAll("tr[data-ddi]").forEach(tr=>tr.addEventListener("click",e=>{ if(e.target.closest("a")) return; const i=+tr.dataset.ddi; S.ddOpen.has(i)?S.ddOpen.delete(i):S.ddOpen.add(i); drawDD(); }));
   document.getElementById("ddAll").onclick=()=>{ if(allOpen) S.ddOpen.clear(); else ddRows.forEach((_,i)=>S.ddOpen.add(i)); drawDD(); };
 }
