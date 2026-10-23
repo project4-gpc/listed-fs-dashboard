@@ -117,6 +117,7 @@ tbody tr.row.fit td:nth-child(2){box-shadow:inset 3px 0 0 var(--accent)}
 .star:hover{color:var(--warn)}
 .detail td{background:var(--bg);padding:14px 16px 18px;text-align:left;font-family:var(--f-body);white-space:normal}
 .dgrid{position:sticky;left:16px;max-width:calc(var(--tw,1000px) - 32px);display:grid;grid-template-columns:minmax(0,1.4fr) minmax(0,1fr) minmax(0,1fr);gap:18px}
+.dgrid2{grid-template-columns:minmax(0,1fr) minmax(0,1fr);max-width:min(900px,calc(var(--tw,1000px) - 32px))}
 @media (max-width:900px){.dgrid{grid-template-columns:minmax(0,1fr)}}
 .dgrid h4{margin:0 0 6px;font-family:var(--f-num);font-weight:500;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
 .dgrid p{margin:0 0 8px;max-width:72ch}
@@ -185,7 +186,7 @@ footer{color:var(--muted);font-size:12px;margin-top:20px;max-width:100ch}
     <div>
       <div class="eyebrow">Greater Pacific Capital · Listed platform search · Consolidated FY24–FY26 · <span id="mktAsof">Market data from workbook</span></div>
       <h1>Listed FS Platform Screener</h1>
-      <p class="sub">38 small-cap listed Indian financial services companies. Filter by vertical, size, valuation and shareholding; click a row for the classification evidence, holding pattern and contacts.</p>
+      <p class="sub">38 small-cap listed Indian financial services companies. Filter by vertical, size, valuation and shareholding; click a row for financials, holding pattern and contacts.</p>
     </div>
     <div class="presets">
       <div class="tabs" role="tablist" aria-label="View">
@@ -548,13 +549,9 @@ function vtags(d){
 function detail(d){
   const hold=[["Promoter",d.pr,"var(--c1)"],["Retail / public",d.rt,"var(--c4)"],["FII",d.fii,"var(--c2)"],["DII",d.dii,"var(--c3)"]];
   const other=Math.max(0,100-hold.reduce((s,h)=>s+(h[1]||0),0));
-  return `<tr class="detail"><td colspan="${COLS.length}"><div class="dgrid">
+  return `<tr class="detail"><td colspan="${COLS.length}"><div class="dgrid dgrid2">
     <div>
-      <h4>Vertical classification evidence</h4>
-      <p>${esc(d.ev||"No evidence recorded.")}</p>
-      ${d.seg?`<h4>Internal segment split</h4><p>${esc(d.seg)}</p>`:""}
-    </div>
-    <div>
+      ${d.seg?`<h4>Segment split</h4><p>${esc(d.seg)}</p>`:""}
       <h4>Financials (₹ cr)</h4>
       <dl class="kv">
         <dt>Revenue FY24 → FY25 → FY26</dt><dd>${fmt(d.r24)} → ${fmt(d.r25)} → ${fmt(d.r26)}</dd>
