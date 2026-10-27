@@ -274,21 +274,21 @@ function radar(host, o){
 // Swarm: one beeswarm row per metric across the universe; peers coloured, the company highlighted.
 // ======================================================================================
 function swarm(host, o){
-  const W=hostW(host,560), m={l:8,r:8}, rowH=o.rowH||84, H=rowH*o.rows.length+6;
+  const dense=Math.max(0,...o.rows.map(r=>r.items.length))>150, W=hostW(host,560), m={l:8,r:8}, rowH=o.rowH||(dense?116:84), H=rowH*o.rows.length+6, band=(rowH-34)/2-3;
   let s=`<svg class="chart swarm" viewBox="0 0 ${W} ${H}" role="img" aria-label="${esc(o.aria||"Peer beeswarm")}">`;
   o.rows.forEach((row,ri)=>{
-    const y0=ri*rowH, cy=y0+rowH/2+8, items=row.items.filter(it=>it.v!=null&&isFinite(it.v));
+    const y0=ri*rowH, cy=y0+18+(rowH-34)/2, items=row.items.filter(it=>it.v!=null&&isFinite(it.v));
     const [d0,d1]=robust(items.map(it=>it.v)); const T=C.niceTicks(Math.min(d0,0<d0&&d0<d1*.25?0:d0),d1,W<560?4:6);
     const sx=v=>m.l+(clamp(v,T.a,T.b)-T.a)/((T.b-T.a)||1)*(W-m.l-m.r);
     s+=`<text class="sw-l" x="${m.l}" y="${y0+14}">${esc(row.label)}</text><text class="sw-r" x="${W-m.r}" y="${y0+14}" text-anchor="end">${esc(row.note||"")}</text>`;
     s+=`<line class="grid" x1="${m.l}" x2="${W-m.r}" y1="${cy}" y2="${cy}"/>`;
     T.t.forEach(v=>{ if(v<T.a-1e-9||v>T.b+1e-9) return; s+=`<text class="sw-t" x="${sx(v)}" y="${y0+rowH-2}" text-anchor="middle">${esc(row.tick(v))}</text>`; });
-    if(row.med!=null) s+=`<line class="med" x1="${sx(row.med)}" x2="${sx(row.med)}" y1="${cy-24}" y2="${cy+24}"/>`;
-    if(row.gmed!=null) s+=`<line class="sw-gm" x1="${sx(row.gmed)}" x2="${sx(row.gmed)}" y1="${cy-20}" y2="${cy+20}" style="stroke:${row.gcolor||"var(--viz-1)"}"/>`;
+    if(row.med!=null) s+=`<line class="med" x1="${sx(row.med)}" x2="${sx(row.med)}" y1="${cy-band}" y2="${cy+band}"/>`;
+    if(row.gmed!=null) s+=`<line class="sw-gm" x1="${sx(row.gmed)}" x2="${sx(row.gmed)}" y1="${cy-band+4}" y2="${cy+band-4}" style="stroke:${row.gcolor||"var(--viz-1)"}"/>`;
     // dodge
     const placed=[], r=3.4, gap=2*r+.6; const ord=items.slice().sort((a,b)=>(a.kind==="self")-(b.kind==="self")||a.v-b.v);
     ord.forEach(it=>{ const x=sx(it.v); let dy=0;
-      if(it.kind!=="self"){ for(let k=0;k<14;k++){ const cand=(k===0?0:(k%2?1:-1)*Math.ceil(k/2)*gap*.85); if(!placed.some(p=>Math.abs(p.x-x)<gap&&Math.abs(p.y-cand)<gap)){ dy=cand; break; } dy=cand; } dy=clamp(dy,-26,26); placed.push({x,y:dy}); }
+      if(it.kind!=="self"){ for(let k=0;k<(dense?22:14);k++){ const cand=(k===0?0:(k%2?1:-1)*Math.ceil(k/2)*gap*.85); if(!placed.some(p=>Math.abs(p.x-x)<gap&&Math.abs(p.y-cand)<gap)){ dy=cand; break; } dy=cand; } dy=clamp(dy,-band+3,band-3); placed.push({x,y:dy}); }
       const out=it.v<T.a||it.v>T.b, tip=esc(row.tipFn(it));
       if(it.kind==="self") s+=`<path class="sw-self" d="${C.shapePath("diamond",x,cy,7.5)}" tabindex="0" data-tip-html="${tip}"/>`;
       else s+=`<circle class="sw-d ${it.kind} ${out?"out":""}" cx="${x}" cy="${cy+dy}" r="${it.kind==="peer"?r+.6:r}" ${it.kind==="peer"?`style="fill:${row.gcolor||"var(--viz-1)"}"`:""} data-id="${esc(it.id)}" data-tip-html="${tip}"/>`; });
