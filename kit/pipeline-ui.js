@@ -86,6 +86,7 @@ function page(main, st, arg, same, ctx){
   paintAll(st, ctx, false);
   if(PG.unsub) PG.unsub(); PG.unsub=ctx.store.on(()=>{ cancelAnimationFrame(PG.raf); PG.raf=requestAnimationFrame(()=>{ if(PG.root&&PG.root.isConnected&&PG.ctx===ctx) paintAll(route().st, ctx, true); }); });
   if(st.open){ const c=ctx.byId.get(st.open); if(c) openDrawer(c, ctx); }
+  if(st.connect&&!sample) settings(ctx.store,{mode:"github"});
 }
 function setP(patch){ const r=route(); const st=withState(r.st,patch); history.replaceState(null,"",href(r.page,r.arg,st)); paintAll(st, PG.ctx, true); }
 function paintAll(st, ctx, animate){ paintHero(st,ctx); paintRiver(ctx); paintOwners(st,ctx); paintBoard(st,ctx,animate); paintAgenda(ctx); paintStall(ctx); paintTeam(ctx); paintFeed(ctx); }
@@ -286,29 +287,31 @@ function paintDrawerLive(){ const el=DR.el, c=DR.c, ctx=DR.ctx; if(!el||!c) retu
   const ft=el.querySelector(".dr-foot .syncpill"); if(ft) ft.outerHTML=syncPill(ctx.store); el.querySelectorAll(".dr-foot [data-sync]").forEach(b=>b.onclick=()=>settings(ctx.store)); }
 
 // ---------- storage settings ----------
-function settings(store){ let m=document.getElementById("pipeCfg"); if(!m){ m=document.createElement("div"); m.id="pipeCfg"; m.className="modal"; m.setAttribute("role","dialog"); m.setAttribute("aria-modal","true"); m.setAttribute("aria-label","Pipeline storage"); document.body.appendChild(m); }
+/** Storage dialog. opt.mode pre-selects a mode when none is saved yet (the ?connect=1 link opens it on the team option). */
+function settings(store, opt){ let m=document.getElementById("pipeCfg"); if(!m){ m=document.createElement("div"); m.id="pipeCfg"; m.className="modal"; m.setAttribute("role","dialog"); m.setAttribute("aria-modal","true"); m.setAttribute("aria-label","Pipeline storage"); document.body.appendChild(m); }
   if(store.memory){ toast("The sample preview is not saved anywhere."); return; }
-  const cfg={mode:"local",branch:"main",...store.cfg}, owner=(M.repo||"").split("/")[0]||"";
-  m.hidden=false; m.innerHTML=`<div class="keys cfg"><h2>Pipeline storage</h2><p class="caption">Stages, owners, next steps and notes are team data. They are never written to the published dashboard or its public repo.</p>
+  const cfg={mode:"local",branch:"main",...store.cfg,...(opt&&opt.mode&&store.cfg.mode!=="github"?{mode:opt.mode}:{})}, owner=(M.repo||"").split("/")[0]||"";
+  m.hidden=false; m.innerHTML=`<div class="keys cfg"><h2>Pipeline storage</h2><p class="caption">Stages, owners, next steps and notes are team data. They are never written to the published dashboard or its public repo. This setup applies to every dashboard on this site, in this browser.</p>
     <div class="seg" role="group" aria-label="Where to keep the pipeline"><button type="button" data-mode="local" aria-pressed="${cfg.mode!=="github"}">This device only</button><button type="button" data-mode="github" aria-pressed="${cfg.mode==="github"}">Private GitHub repo (team)</button></div>
     <div class="cfg-gh" ${cfg.mode==="github"?"":"hidden"}>
       <label><span>Private repo</span><input class="inp" data-c="repo" value="${esc(cfg.repo||(owner?owner+"/gpc-pipeline":""))}" placeholder="owner/name"></label>
       <label><span>Branch</span><input class="inp" data-c="branch" value="${esc(cfg.branch||"main")}"></label>
       <label><span>File</span><input class="inp" data-c="path" value="${esc(cfg.path||`pipeline/${store.key}.json`)}"></label>
-      <label><span>Your GitHub token</span><input class="inp" type="password" data-c="token" value="${esc(cfg.token||"")}" autocomplete="off" placeholder="Fine-grained token: Contents read and write on that repo only"></label>
-      <p class="caption">The token is stored only in this browser and sent only to GitHub. The repo must be private; a public repo is refused. Each teammate uses their own token.</p></div>
-    <label><span>Your name (shown on your activity)</span><input class="inp" data-c="me" value="${esc(cfg.me||"")}" placeholder="e.g. Faizan Ansari"></label>
+      <label><span>GitHub token</span><input class="inp" type="password" data-c="token" value="${esc(cfg.token||"")}" autocomplete="off" placeholder="Paste the token"></label>
+      <p class="caption">Use the team token from the pipeline owner, or your own token if you were added to the repo. It is stored only in this browser and sent only to GitHub. The repo must be private; a public repo is refused.</p></div>
+    <label><span>Your name (shown on your activity)</span><input class="inp" data-c="me" value="${esc(cfg.me||"")}" placeholder="Your name"></label>
     <div class="cfg-st caption" aria-live="polite">${esc(store.status.msg||"")}</div>
     <div class="pills"><button type="button" class="btn primary sm" data-save>Save</button><button type="button" class="btn sm" data-test ${cfg.mode==="github"?"":"hidden"}>Test connection</button><button type="button" class="btn sm" data-export>${icon("down")}Export backup</button><label class="btn sm">Import backup<input type="file" accept="application/json,.json" hidden data-import></label><button type="button" class="btn sm" data-close>Close</button></div></div>`;
   const val=k=>(m.querySelector(`[data-c="${k}"]`)||{}).value||"", st=m.querySelector(".cfg-st");
   let mode=cfg.mode==="github"?"github":"local";
   m.querySelectorAll("[data-mode]").forEach(b=>b.onclick=()=>{ mode=b.dataset.mode; m.querySelectorAll("[data-mode]").forEach(x=>x.setAttribute("aria-pressed",x===b)); m.querySelector(".cfg-gh").hidden=mode!=="github"; m.querySelector("[data-test]").hidden=mode!=="github"; });
   m.querySelector("[data-test]").onclick=async()=>{ st.textContent="Checking…"; try{ const be=new window.Pipeline.GitHubBackend({repo:val("repo").trim(),branch:val("branch").trim()||"main",path:val("path").trim(),token:val("token").trim()}); const j=await be.check(); const r=await be.load(); st.textContent=`Connected to private repo ${j.full_name}. ${r.data?`Pipeline file found (${Object.keys(r.data.recs||{}).length} deals).`:"The pipeline file will be created on the first save."}`; }catch(e){ st.textContent=e.message; } };
-  m.querySelector("[data-save]").onclick=async()=>{ store.saveCfg({mode, repo:val("repo").trim(), branch:val("branch").trim()||"main", path:val("path").trim(), token:val("token").trim(), me:val("me").trim()}); st.textContent="Saved. Syncing…"; await store.pull(); if(store.status.state==="synced"&&Object.keys(store.state.recs).length) await store.push(); st.textContent=store.status.msg||(mode==="github"?"Team sync is on.":"Kept on this device."); };
+  m.querySelector("[data-save]").onclick=async()=>{ store.saveCfg({mode, repo:val("repo").trim(), branch:val("branch").trim()||"main", path:val("path").trim(), token:val("token").trim(), me:val("me").trim()}); st.textContent="Saved. Syncing…"; await store.pull(); st.textContent=store.status.msg||(mode==="github"?"Team sync is on. Anything kept on this device has been merged in.":"Kept on this device."); };
   m.querySelector("[data-export]").onclick=()=>download(new Blob([store.exportJSON()],{type:"application/json"}),`${store.key}-pipeline-${window.Pipeline.dayKey()}.json`);
   m.querySelector("[data-import]").onchange=e=>{ const f=e.target.files[0]; if(!f) return; f.text().then(t=>{ store.importJSON(t); st.textContent="Backup merged into the pipeline."; }).catch(err=>st.textContent=err.message); };
-  m.querySelector("[data-close]").onclick=()=>{ m.hidden=true; }; m.onclick=e=>{ if(e.target===m) m.hidden=true; }; m.onkeydown=e=>{ if(e.key==="Escape") m.hidden=true; };
-  m.querySelector("[data-mode]").focus(); }
+  const close=()=>{ m.hidden=true; const r=route(); if(r.st.connect) history.replaceState(null,"",href(r.page,r.arg,r.st)); };
+  m.querySelector("[data-close]").onclick=close; m.onclick=e=>{ if(e.target===m) close(); }; m.onkeydown=e=>{ if(e.key==="Escape") close(); };
+  (mode==="github"&&!cfg.token?m.querySelector('[data-c="token"]'):m.querySelector("[data-mode]")).focus(); }
 
 // ---------- embeds for other pages ----------
 function stagePill(c){ return spill(PIPE.stageOf(c)); }

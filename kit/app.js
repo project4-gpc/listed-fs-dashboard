@@ -87,7 +87,7 @@ function route(){
     q:q.get("q")||"", g:list(q.get("g")), t:list(q.get("t")), r:parseR(q.get("r")), s:list(q.get("s")), sel:list(q.get("sel")),
     c:list(q.get("c")), v:q.get("v")||"", cols:list(q.get("cols")), heat:q.get("heat")==="1", bars:q.get("bars")==="1", ch:q.get("ch")==="1", w:parseW(q.get("w")),
     ax:q.get("ax")||"", ay:q.get("ay")||"", sz:q.has("sz")?q.get("sz"):null, lg:q.get("lg")||"", qd:q.get("qd")==="1", lb:q.get("lb")||"sl", z:parseZ(q.get("z")), pin:q.get("pin")||"",
-    tm:q.get("tm")||"", tc:q.get("tc")||"", tab:q.get("tab")||"", stg:list(q.get("stg")), pq:q.get("pq")||"", own:q.get("own")||"", od:q.get("od")==="1", open:q.get("open")||"", pack:q.get("pack")==="1", pv:q.has("pv")?(+q.get("pv")||1):0 } };
+    tm:q.get("tm")||"", tc:q.get("tc")||"", tab:q.get("tab")||"", stg:list(q.get("stg")), pq:q.get("pq")||"", own:q.get("own")||"", od:q.get("od")==="1", open:q.get("open")||"", pack:q.get("pack")==="1", pv:q.has("pv")?(+q.get("pv")||1):0, connect:q.get("connect")==="1" } };
 }
 function qs(st){
   const q=[]; const e=encodeURIComponent, r4=v=>+(+v).toPrecision(5);

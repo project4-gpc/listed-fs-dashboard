@@ -96,11 +96,23 @@
       else fail("pipeline","drag test setup failed");
       await P.push(); let saved=null; try{ saved=JSON.parse(localStorage.getItem("gpc-pipe-"+M.key)||"null"); }catch(e){}
       if(!saved||!saved.recs||!saved.recs[c.name]) fail("pipeline","pipeline not kept on this device");
+      // one connection setup serves every dashboard on the site; only the file path is per dashboard
+      const keep=localStorage.getItem("gpc-pipe-cfg");
+      try{ const sa=new PL.Store({key:"qa-a"}); sa.saveCfg({mode:"github",repo:"o/r",token:"t",me:"QA",path:"pipeline/qa-a.json"});
+        const cb=PL.Store.loadCfg("qa-b"); if(cb.mode!=="github"||cb.repo!=="o/r"||cb.token!=="t"||cb.me!=="QA"||cb.path) fail("pipeline","connection settings are not shared across dashboards");
+        if(PL.Store.loadCfg("qa-a").path!=="pipeline/qa-a.json") fail("pipeline","per-dashboard file path not kept"); }
+      finally{ if(keep==null) localStorage.removeItem("gpc-pipe-cfg"); else localStorage.setItem("gpc-pipe-cfg",keep); localStorage.removeItem("gpc-pipe-cfg-qa-a"); }
+      // the ?connect=1 link opens the storage dialog on the team option, and closing it drops the flag from the address
+      goto("#/pipeline?connect=1"); const dlg=document.getElementById("pipeCfg");
+      if(!dlg||dlg.hidden||dlg.querySelector('[data-mode="github"]').getAttribute("aria-pressed")!=="true") fail("pipeline","connect link did not open the team storage setup");
+      if(dlg){ dlg.querySelector("[data-close]").click(); if(/connect=/.test(location.hash)) fail("pipeline","connect flag left in the address"); }
       // team sync against a mocked GitHub API (no network, no real token)
       const realFetch=window.fetch, srv={priv:true,content:null,sha:null,conflict:true}, J=(o,s=200)=>new Response(JSON.stringify(o),{status:s,headers:{"Content-Type":"application/json"}});
       window.fetch=async(url,opt={})=>{ const u=String(url); if(!u.startsWith("https://mock.test/")) return realFetch(url,opt);
         if(/\/repos\/o\/r$/.test(u)) return J({private:srv.priv,full_name:"o/r"});
-        if((opt.method||"GET")==="GET") return srv.content?J({sha:srv.sha,content:PL.b64encode(srv.content)}):J({message:"Not Found"},404);
+        if((opt.method||"GET")==="GET"){ if(!srv.content) return J({message:"Not Found"},404);
+          if(srv.big) return (opt.headers||{}).Accept==="application/vnd.github.raw+json"?new Response(srv.content,{status:200}):J({sha:srv.sha,content:"",encoding:"none",size:2e6});
+          return J({sha:srv.sha,content:PL.b64encode(srv.content),encoding:"base64"}); }
         const body=JSON.parse(opt.body);
         if(srv.conflict){ srv.conflict=false; srv.content=JSON.stringify({v:1,recs:{"Teammate Co":{stage:"nda",u:new Date().toISOString(),log:[]}}}); srv.sha="s2"; return J({message:"conflict"},409); }
         if(srv.sha&&body.sha!==srv.sha) return J({message:"stale"},409);
@@ -113,6 +125,13 @@
         if(!remote.recs||!remote.recs["QA Co"]||!remote.recs["Teammate Co"]) fail("pipeline sync","a concurrent teammate edit was lost in the merge");
         srv.priv=false; const s2=new PL.Store({key:"qa-mock2",memory:true}); s2.saveCfg({mode:"github",repo:"o/r",token:"t",api:"https://mock.test"}); s2.update({name:"QA Co"},{stage:"outreach"}); await s2.push();
         if(s2.status.state!=="error"||!/public/i.test(s2.status.msg)) fail("pipeline sync","a public repo was not refused");
+        // a file over 1 MB is read through the raw media type
+        srv.priv=true; srv.big=true; const ld=await new PL.GitHubBackend({repo:"o/r",path:"p.json",token:"t",api:"https://mock.test"}).load();
+        if(!ld.data||!ld.data.recs||!ld.data.recs["QA Co"]) fail("pipeline sync","a large pipeline file was not read");
+        // records kept on a device before it connected are uploaded on the first sync
+        srv.big=false; srv.content=null; srv.sha=null; const s3=new PL.Store({key:"qa-mock3",memory:true}); s3.saveCfg({mode:"github",repo:"o/r",token:"t",api:"https://mock.test"});
+        s3.state={v:1,recs:{"Local Co":{stage:"outreach",u:new Date().toISOString(),log:[]}}}; await s3.pull();
+        const up=JSON.parse(srv.content||"{}"); if(!up.recs||!up.recs["Local Co"]) fail("pipeline sync","records kept on this device before connecting were not uploaded");
       } finally { window.fetch=realFetch; }
       P.state=JSON.parse(backup); await P.push(); goto("#/pipeline");
     }

@@ -30,6 +30,8 @@ function mergeState(a,b){
     const win=(y.u||"")>(x.u||"")?y:x; recs[n]={...win, log:mergeLogs(x.log,y.log), peak:Math.max(x.peak??0,y.peak??0)}; });
   return {v:1, recs};
 }
+/** True when state a holds a record that b lacks or has an older version of, i.e. b needs a push. */
+function aheadOf(a,b){ const br=(b&&b.recs)||{}; return Object.entries((a&&a.recs)||{}).some(([n,x])=>{ const y=br[n]; return !y||(x.u||"")>(y.u||""); }); }
 
 class MemoryBackend{ constructor(){ this.kind="memory"; this.data=null; } async load(){ return {data:this.data}; } async save(d){ this.data=JSON.parse(JSON.stringify(d)); return {}; } }
 class LocalBackend{
@@ -51,10 +53,16 @@ class GitHubBackend{
   }
   async load(){
     if(!this.checked) await this.check();
-    const r=await fetch(`${this.api}/repos/${this.repo}/contents/${this.path}?ref=${encodeURIComponent(this.branch)}`,{headers:this.h(),cache:"no-store"});
+    const url=`${this.api}/repos/${this.repo}/contents/${this.path}?ref=${encodeURIComponent(this.branch)}`;
+    const r=await fetch(url,{headers:this.h(),cache:"no-store"});
     if(r.status===404){ this.sha=null; return {data:null}; }
     if(!r.ok) throw new Error("GitHub error "+r.status+" reading the pipeline.");
-    const j=await r.json(); this.sha=j.sha; return {data:JSON.parse(b64decode(j.content))};
+    const j=await r.json(); this.sha=j.sha;
+    let text=j.encoding==="none"?null:b64decode(j.content||"");
+    if(text==null){ // files over 1 MB come without inline content: read the raw file instead
+      const raw=await fetch(url,{headers:{...this.h(),"Accept":"application/vnd.github.raw+json"},cache:"no-store"});
+      if(!raw.ok) throw new Error("GitHub error "+raw.status+" reading the pipeline."); text=await raw.text(); }
+    return {data:text.trim()?JSON.parse(text):null};
   }
   async save(data){
     if(!this.checked) await this.check();
@@ -75,8 +83,11 @@ class Store{
     this.cacheKey="gpc-pipe-cache-"+o.key; this.local=this.memory?new MemoryBackend():new LocalBackend(o.key); this.dirty=false;
     if(!this.memory) addEventListener("online",()=>{ if(this.dirty) this.push(); else this.pull(); });
   }
-  static loadCfg(key){ try{ return JSON.parse(localStorage.getItem("gpc-pipe-cfg-"+key)||"{}"); }catch(e){ return {}; } }
-  saveCfg(cfg){ this.cfg={...this.cfg,...cfg}; this._gh=null; if(!this.memory) try{ localStorage.setItem("gpc-pipe-cfg-"+this.key, JSON.stringify(this.cfg)); }catch(e){} }
+  // The connection (mode, repo, branch, token, name) is shared by every dashboard on this site; only the file path is per dashboard.
+  static loadCfg(key){ try{ const own=JSON.parse(localStorage.getItem("gpc-pipe-cfg-"+key)||"{}"), sh=JSON.parse(localStorage.getItem("gpc-pipe-cfg")||"{}"), c={...own,...sh};
+    if(own.path) c.path=own.path; else delete c.path; return c; }catch(e){ return {}; } }
+  saveCfg(cfg){ this.cfg={...this.cfg,...cfg}; this._gh=null; if(this.memory) return;
+    try{ const {path,...shared}=this.cfg; localStorage.setItem("gpc-pipe-cfg", JSON.stringify(shared)); localStorage.setItem("gpc-pipe-cfg-"+this.key, JSON.stringify(path?{path}:{})); }catch(e){} }
   path(){ return this.cfg.path||`pipeline/${this.key}.json`; }
   backend(){ if(this.cfg.mode==="github"&&this.cfg.repo&&this.cfg.token){ if(!this._gh) this._gh=new GitHubBackend({repo:this.cfg.repo,branch:this.cfg.branch,path:this.path(),token:this.cfg.token,api:this.cfg.api}); return this._gh; } return this.local; }
   me(){ return String(this.cfg.me||"").trim(); }
@@ -93,7 +104,7 @@ class Store{
     const be=this.backend(); this.setStatus({mode:be.kind});
     if(be.kind!=="github"){ this.setStatus({state:be.kind,at:new Date(),msg:""}); return; }
     this.setStatus({state:"syncing"});
-    try{ const r=await be.load(); if(r.data) this.state=mergeState(this.state,r.data); this.cache(); this.setStatus({state:"synced",at:new Date(),msg:""}); if(this.dirty) await this.push(); }
+    try{ const r=await be.load(), ahead=aheadOf(this.state,r.data); if(r.data) this.state=mergeState(this.state,r.data); this.cache(); this.setStatus({state:"synced",at:new Date(),msg:""}); if(this.dirty||ahead) await this.push(); }
     catch(e){ this.setStatus({state:navigator.onLine===false?"offline":"error",msg:e.message}); }
   }
   schedule(){ this.dirty=true; this.cache(); clearTimeout(this._t); this._t=setTimeout(()=>this.push(),this.memory?0:1200); }
@@ -134,5 +145,5 @@ class Store{
   exportJSON(){ return JSON.stringify(this.state,null,1); }
   importJSON(s){ const d=JSON.parse(s); if(!d||typeof d.recs!=="object") throw new Error("That is not a pipeline file."); this.state=mergeState(this.state,d); this.emit(); this.schedule(); }
 }
-window.Pipeline={ STAGES, Store, GitHubBackend, LocalBackend, MemoryBackend, mergeState, mergeLogs, b64encode, b64decode, dayKey };
+window.Pipeline={ STAGES, Store, GitHubBackend, LocalBackend, MemoryBackend, mergeState, mergeLogs, aheadOf, b64encode, b64decode, dayKey };
 })();
