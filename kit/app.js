@@ -35,14 +35,15 @@ function fmt(k, v, c, opt={}){
     case "x": return v<0?`<span class="neg">${MINUS}${nf(v,1)}x</span>`:nf(v,1)+"x";
     case "pct": return nf(v,1)+"%";
     case "chg": return `<span class="${v>0?"pos":v<0?"neg":""}">${v>0?"+":v<0?MINUS:""}${nf(v,1)}%</span>`;
+    case "pp": return `<span class="${v>0?"pos":v<0?"neg":""}">${v>0?"+":v<0?MINUS:""}${nf(v,1)} pp</span>`;
     case "int": return Math.round(v).toLocaleString("en-IN");
     default: return num(v,1);
   }
 }
 function fmtPlain(k, v, opt={}){ const f=opt.fmt||(MET[k]||{}).fmt; if(v==null||!isFinite(v)) return "n/a";
-  if(f==="x") return (v<0?MINUS:"")+nf(v,1)+"x"; if(f==="pct") return nf(v,1)+"%"; if(f==="chg") return (v>0?"+":v<0?MINUS:"")+nf(v,1)+"%"; if(f==="int") return Math.round(v).toLocaleString("en-IN");
+  if(f==="x") return (v<0?MINUS:"")+nf(v,1)+"x"; if(f==="pct") return nf(v,1)+"%"; if(f==="chg") return (v>0?"+":v<0?MINUS:"")+nf(v,1)+"%"; if(f==="pp") return (v>0?"+":v<0?MINUS:"")+nf(v,1)+" pp"; if(f==="int") return Math.round(v).toLocaleString("en-IN");
   if(f==="inr") return "₹"+nf(v,2); return "₹"+(v<0?MINUS:"")+nf(v,1)+" cr"; }
-const unitOf = k=>({cr:"₹ cr",x:"x",pct:"%",chg:"%",inr:"₹",int:""})[(MET[k]||{}).fmt]||"";
+const unitOf = k=>({cr:"₹ cr",x:"x",pct:"%",chg:"%",pp:"pp",inr:"₹",int:""})[(MET[k]||{}).fmt]||"";
 const pill = (label,tone,tip)=>`<span class="pill ${tone||"neu"}"${tip?` data-tip="${esc(tip)}" tabindex="0"`:""}>${esc(label)}</span>`;
 const gpill = key=>{ const g=G[key]; return g?`<span class="vpill"><span class="dot" style="background:${g.color}"></span>${esc(g.short)}</span>`:""; };
 const flagPills = c=>c.flags.map(f=>pill(f.label,f.tone,f.tip)).join("");
@@ -312,7 +313,7 @@ function legendFor(host, redraw, note){
     scatterHidden = solo ? [] : items.filter(i=>i.key!==k&&i.key!=="__other").map(i=>i.key); redraw(); }, note);
 }
 const shortName = n=>n.replace(/\b(Limited|Ltd\.?|Private|Pvt\.?|Corporation|Company)\b/gi,"").replace(/\s+/g," ").trim().slice(0,26);
-function tick(k,v){ const f=(MET[k]||{}).fmt; if(f==="x") return v+"x"; if(f==="pct"||f==="chg") return v+"%"; return v.toLocaleString("en-IN"); }
+function tick(k,v){ const f=(MET[k]||{}).fmt; if(f==="x") return v+"x"; if(f==="pct"||f==="chg") return v+"%"; if(f==="pp") return v+" pp"; return v.toLocaleString("en-IN"); }
 
 // Screener -----------------------------------------------------------
 const ALLCOLS = ()=>Object.keys(MET).concat(Object.keys(TEXT));
@@ -507,7 +508,10 @@ const safeHtml = s=>esc(s).replace(/&lt;(\/?)b&gt;/g,"<$1b>");
 function topPart(r){ const p=r.parts.slice().sort((a,b)=>b.value-a.value)[0]; return `${p.label} is ${Math.round(p.value/r.total*100)}% of income`; }
 function segMedian(c,k){ return K.median(M.companies.filter(x=>x.prim===c.prim).map(x=>x.m[k])); }
 function kpiValue(c,k){ return k==="nd"&&c.m.nd!=null&&c.m.nd<=0?`<span class="pos">${nf(-c.m.nd,1)}</span><small> ₹ cr net cash</small>`:fmt(k,c.m[k],c)+(MET[k].fmt==="cr"?"<small> ₹ cr</small>":""); }
-function kpiCtx(c,k){ const med=segMedian(c,k); const g=G[c.prim]; if(k==="nd") return c.m.nd==null?"cash not recorded":c.m.nd<=0?"cash exceeds borrowings":"borrowings exceed cash"; return med==null?"":`${g?g.short:"peer"} median ${fmtPlain(k,med)}`; }
+function kpiCtx(c,k){
+  if(k==="roe"){ if(c.m.roe26==null) return "FY26 ROE not available"; const d=c.m.roe-c.m.roe26; return `vs FY26 ROE ${nf(c.m.roe26,1)}%: ${Math.abs(d)<0.05?"flat":(d>0?"up ":"down ")+nf(d,1)+" pp"}`; }
+  if(k==="roe26"&&c.m.roe26==null) return "not reported for FY26";
+  const med=segMedian(c,k); const g=G[c.prim]; if(k==="nd") return c.m.nd==null?"cash not recorded":c.m.nd<=0?"cash exceeds borrowings":"borrowings exceed cash"; return med==null?"":`${g?g.short:"peer"} median ${fmtPlain(k,med)}`; }
 function diligenceUrl(c){ // issue title carries no company name (public repo)
   const ref=(c.id.length*7919+[...c.id].reduce((a,ch)=>a+ch.charCodeAt(0),0)).toString(16);
   return `https://github.com/${M.repo}/issues/new?labels=diligence&title=${encodeURIComponent("Diligence request "+ref)}&body=${encodeURIComponent(`Company: ${c.name} (${c.code})\n\nRun shortlist diligence and add it to diligence.js, following .github/diligence-prompt.md.`)}`; }

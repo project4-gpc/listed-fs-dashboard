@@ -71,9 +71,12 @@ function parse(html) {
   const pl = table(html, "profit-loss"), bs = table(html, "balance-sheet"), sh = table(html, "shareholding");
   const rev = row(pl, ["sales", "revenue"]), pat = row(pl, ["net profit"]), bor = row(bs, ["borrowings", "borrowing"]);
   const price = ratio(html, "Current Price"), bv = ratio(html, "Book Value");
+  // Screener's top-ratio ROE is for the latest full year; record it as FY26 only when that year is Mar 2026.
+  const ra = table(html, "ratios"), latestFY = ra ? ra.cols.filter(c => /^Mar \d{4}$/.test(c)).pop() : null;
   return {
     mc: ratio(html, "Market Cap"), price, pe: ratio(html, "Stock P/E"),
     pb: price != null && bv ? +(price / bv).toFixed(2) : null,
+    bv, roe26: latestFY === "Mar 2026" ? ratio(html, "ROE") : null,
     r24: fy(pl, rev, 2024), r25: fy(pl, rev, 2025), r26: fy(pl, rev, 2026),
     p24: fy(pl, pat, 2024), p25: fy(pl, pat, 2025), p26: fy(pl, pat, 2026),
     gd: bs ? last(bor) : null,

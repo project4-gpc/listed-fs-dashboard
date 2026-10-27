@@ -20,7 +20,7 @@ const TONE = {g:"pos",w:"warn",b:"neg",n:"neu"};
 
 function merge(src){
   const MKT = src.MKT || {asof:null, co:{}};
-  const MKT_KEYS = ["mc","pe","pb","r24","r25","r26","p24","p25","p26","pr","fii","dii","rt","gd"];
+  const MKT_KEYS = ["mc","pe","pb","bv","roe26","r24","r25","r26","p24","p25","p26","pr","fii","dii","rt","gd"];
   return (src.RAW_BASE||[]).map(r=>{
     const m = MKT.co && MKT.co[r.t]; if(!m) return {...r, _mkt:false};
     const o = {...r, _mkt:true, price:m.price, shq:m.shq, basis:m.basis};
@@ -56,7 +56,9 @@ function build(src, opts){
     const m = { mc:r.mc, price:r.price??null, r24:r.r24, r25:r.r25, r26:r.r26, p24:r.p24, p25:r.p25, p26:r.p26,
       rg:rg.v, pg:pg.v, rg3:rg3.v, pg3:pg3.v,
       pm: r.r26 ? r.p26/r.r26*100 : null,
-      pe:r.pe, pb:r.pb, roe:(r.pb&&r.pe)? r.pb/r.pe*100 : null,
+      pe:r.pe, pb:r.pb, bv:r.bv??null, roe:(r.pb&&r.pe)? r.pb/r.pe*100 : null, roe26:r.roe26??null,
+      roeChg:(r.pb&&r.pe&&r.roe26!=null)? r.pb/r.pe*100 - r.roe26 : null,
+      ltmE:(r.mc&&r.pe)? r.mc/r.pe : null,
       pr:r.pr, fii:r.fii, dii:r.dii, rt:r.rt, inst:r.inst??null,
       gd:r.gd, cash:r.cash, nd:r.nd??null,
       ndmc: (r.nd!=null&&r.mc)? r.nd/r.mc*100 : null,
@@ -80,6 +82,8 @@ function build(src, opts){
     ["mc","pe","pb","r26","p26","pr"].forEach(k=>{ if(r[k]==null) dq.push({level:"info",text:`${k.toUpperCase()} missing in the source.`}); });
     Object.entries(nm).forEach(([k,v])=>{ if(v) dq.push({level:"info",text:`${({rg:"Revenue growth",pg:"PAT growth",rg3:"Revenue CAGR",pg3:"PAT CAGR"})[k]}: ${v}`}); });
     if(r.basis==="standalone") dq.push({level:"info",text:"Screener has no consolidated figures; standalone figures shown."});
+    if(r.mc&&r.pe&&r.p26>0){ const le=r.mc/r.pe, gap=(le-r.p26)/r.p26*100; if(Math.abs(gap)>30) dq.push({level:"warn",text:`LTM earnings implied by P/E (₹${le.toFixed(1)} cr) differ from FY26 PAT (₹${r.p26} cr) by ${gap>0?"+":""}${gap.toFixed(0)}%, so LTM implied ROE and FY26 ROE diverge. Check recent quarters for one-offs.`}); }
+    if(r._mkt && r.roe26==null) dq.push({level:"info",text:"No FY26 ROE from Screener yet (latest annual results not Mar 2026, or not reported)."});
     if(r.p26!=null&&r.r26!=null&&r.p26>r.r26) dq.push({level:"warn",text:"FY26 PAT exceeds FY26 revenue: check for other income or a data error."});
     const notes = SL.notes && SL.notes[r.n] || {};
     return {
@@ -119,11 +123,11 @@ function build(src, opts){
     metrics: METRICS(asofStr, DDM.asof),
     columnGroups:["Size","Valuation","Growth","Profitability","Ownership","Control"],
     views:[
-      {key:"default",label:"Default",cols:["mc","r26","p26","pe","pb","roe","rg","pg","pg3","sRev","sPat","pm","pr","inst","nd","ctrl"]},
-      {key:"valuation",label:"Valuation",cols:["mc","pe","pb","roe","p26","pm","pr","ctrl"]},
+      {key:"default",label:"Default",cols:["mc","r26","p26","pe","pb","rg","pg","pg3","sRev","sPat","roe","roe26","pm","pr","inst","nd","ctrl"]},
+      {key:"valuation",label:"Valuation",cols:["mc","pe","pb","p26","roe","roe26","roeChg","pm","pr","ctrl"]},
       {key:"growth",label:"Growth",cols:["mc","r24","r25","r26","rg","rg3","sRev","p24","p25","p26","pg","pg3","sPat"]},
       {key:"ownership",label:"Ownership & control",cols:["mc","pr","fii","dii","inst","rt","gd","cash","nd","ctrl"]},
-      {key:"all",label:"All columns",cols:["mc","price","r24","r25","r26","p24","p25","p26","pe","pb","roe","rg","rg3","sRev","pg","pg3","sPat","pm","pr","fii","dii","inst","rt","gd","cash","nd","ndmc","ctrl"]}
+      {key:"all",label:"All columns",cols:["mc","price","r24","r25","r26","p24","p25","p26","pe","pb","bv","rg","rg3","sRev","pg","pg3","sPat","roe","roe26","roeChg","ltmE","pm","pr","fii","dii","inst","rt","gd","cash","nd","ndmc","ctrl"]}
     ],
     filters:{
       ranges:["mc","p26","r26","pe","pb","pr","inst","nd"],
@@ -153,16 +157,16 @@ function build(src, opts){
       {key:"universe",label:"Universe",fmt:"int",value:cs=>cs.length,ctx:cs=>`${new Set(cs.map(c=>c.prim)).size} verticals`,link:{}},
       {key:"fit",label:"Mandate fit",fmt:"int",value:cs=>cs.filter(c=>c.fit).length,ctx:()=>"₹40–130 cr, PAT ≥ ₹5 cr",link:{t:["fit"]}},
       {key:"short",label:"Shortlist",fmt:"int",value:cs=>cs.filter(c=>c.shortlisted).length,ctx:cs=>`${cs.filter(c=>c.shortlisted&&c.dd).length} with diligence`,link:{t:["short"]}},
-      {key:"pe",label:"Median P/E",fmt:"x",value:cs=>K.median(cs.map(c=>c.m.pe)),ctx:()=>"trailing, FY26 PAT"},
+      {key:"pe",label:"Median P/E",fmt:"x",value:cs=>K.median(cs.map(c=>c.m.pe)),ctx:()=>"on LTM earnings"},
       {key:"pb",label:"Median P/B",fmt:"x",value:cs=>K.median(cs.map(c=>c.m.pb)),ctx:cs=>`${cs.filter(c=>c.m.pb!=null&&c.m.pb<1).length} trade below book`},
       {key:"pr",label:"Median promoter",fmt:"pct",value:cs=>K.median(cs.map(c=>c.m.pr)),ctx:cs=>`${cs.filter(c=>!(c.m.pr>0)).length} with no promoter`},
       {key:"netcash",label:"Net cash",fmt:"int",value:cs=>cs.filter(c=>c.m.nd!=null&&c.m.nd<=0).length,ctx:()=>"net debt ≤ 0",link:{t:["netcash"]}}
     ],
-    scatter:{x:"mc", y:"pb", axes:["mc","pe","pb","roe","r26","p26","pg","pg3","pm","pr","inst","nd","ctrl"]},
+    scatter:{x:"mc", y:"pb", axes:["mc","pe","pb","roe","roe26","r26","p26","pg","pg3","pm","pr","inst","nd","ctrl"]},
     scoring:{criteria:[
       {key:"size",label:"Size fit",weight:20,explain:"1 inside the ₹40–130 cr band, falling linearly to 0 at ₹65 cr outside it."},
       {key:"growth",label:"Growth",weight:15,explain:"Percentile of FY24–FY26 PAT CAGR across the universe (n.m. scores 0)."},
-      {key:"profit",label:"Profitability",weight:20,explain:"Percentile of implied ROE (P/B ÷ P/E)."},
+      {key:"profit",label:"Profitability",weight:20,explain:"Percentile of FY26 ROE as reported by Screener (no FY26 ROE scores 0)."},
       {key:"leverage",label:"Leverage",weight:15,explain:"Percentile of net debt ÷ market cap, lower is better."},
       {key:"control",label:"Controllability",weight:15,explain:"Promoter stake ÷ 75%, capped at 1 (0 with no promoter)."},
       {key:"value",label:"Valuation",weight:15,explain:"Percentile of P/B, lower is better."}
@@ -171,20 +175,20 @@ function build(src, opts){
       return {
         size: d==null?0:Math.max(0,1-d/65),
         growth: K.pctRank(cs.map(x=>x.m.pg3), c.m.pg3) ?? 0,
-        profit: K.pctRank(cs.map(x=>x.m.roe), c.m.roe) ?? 0,
+        profit: K.pctRank(cs.map(x=>x.m.roe26), c.m.roe26) ?? 0,
         leverage: K.pctRank(cs.map(x=>x.m.ndmc), c.m.ndmc, true) ?? 0,
         control: c.m.pr>0 ? Math.min(1,c.m.pr/75) : 0,
         value: K.pctRank(cs.map(x=>x.m.pb), c.m.pb, true) ?? 0 };
     }},
     compare:[
       {sec:"Size",rows:["mc","r26","p26"]},
-      {sec:"Valuation",rows:["pe","pb","roe"]},
+      {sec:"Valuation",rows:["pe","pb"]},
       {sec:"Growth",rows:["rg","rg3","pg","pg3"]},
-      {sec:"Profitability",rows:["pm"]},
+      {sec:"Profitability",rows:["roe","roe26","roeChg","pm"]},
       {sec:"Ownership",rows:["pr","inst"]},
       {sec:"Control",rows:["nd","ctrl"]}
     ],
-    company:{ kpis:["mc","pe","pb","roe","pr","nd"], peers:["pe","pb","roe"], fin:true, hold:true, control:{openOffer:26}, revMix:true },
+    company:{ kpis:["mc","pe","pb","roe","roe26","pr","nd"], peers:["pe","pb","roe26"], fin:true, hold:true, control:{openOffer:26}, revMix:true },
     methodology:[
       {h:"Sources and refresh",p:[
         "Market cap, price, P/E, P/B, revenue, PAT, borrowings and shareholding come from Screener.in (consolidated where available, otherwise standalone), refreshed every weekday at 4 PM IST by a scheduled job in the repo.",
@@ -195,7 +199,7 @@ function build(src, opts){
         "The shortlist is stored in the repo (shortlist.js) so the whole team sees one list. Starring in the screener stages a change you then publish to the repo."]},
       {h:"Derived measures",p:[
         `Growth and CAGR are shown as n.m. (not meaningful) when the prior-year or start value is zero, negative or below ₹${MIN_BASE} cr.`,
-        "Implied ROE = P/B ÷ P/E. Net debt = latest borrowings − workbook cash. Cost to control = market cap × (promoter stake + 26% open offer under SEBI SAST), capped at 100%, at the current price before any premium. The regulatory open-offer price can be higher than the current price."]},
+        "LTM implied ROE = P/B ÷ P/E: Screener's P/E uses last-twelve-months (LTM) earnings and P/B the latest book value, so it is not reported ROE. FY26 ROE is taken as reported by Screener (net profit ÷ average equity for the year to Mar 2026). Compare the two to see whether returns have risen or fallen since FY26. Net debt = latest borrowings − workbook cash. Cost to control = market cap × (promoter stake + 26% open offer under SEBI SAST), capped at 100%, at the current price before any premium. The regulatory open-offer price can be higher than the current price."]},
       {h:"Snapshots and changes",p:["Each refresh is a commit in the repo. The Overview compares the current data with the previous refresh commit: price moves beyond ±5%, flag changes, shareholding changes, mandate entries and exits, and failed refreshes."]}
     ],
     changeRules:{pct:[{k:"price",th:5,label:"Price"}], abs:[{k:"pr",th:0.01,label:"Promoter stake",unit:" pp"}], flags:["mandate","review","checkpat","nopromoter","diligence"]},
@@ -222,9 +226,13 @@ function METRICS(asof, ddAsof){
     sRev:{label:"Revenue trend FY24–26",short:"Rev trend",group:"Growth",fmt:"spark",series:["r24","r25","r26"],def:"Revenue FY24 → FY26",formula:"Sparkline; dot green if FY26 ≥ FY24",source:mk,asof},
     sPat:{label:"PAT trend FY24–26",short:"PAT trend",group:"Growth",fmt:"spark",series:["p24","p25","p26"],def:"PAT FY24 → FY26",formula:"Sparkline; dot green if FY26 ≥ FY24",source:mk,asof},
     pm:{label:"PAT margin FY26",short:"PAT margin",group:"Profitability",fmt:"chg",def:"Net profit as a share of revenue",formula:"PAT FY26 ÷ Revenue FY26",source:der,asof,better:"high"},
-    pe:{label:"P/E",short:"P/E",group:"Valuation",fmt:"x",def:"Price to trailing earnings",formula:"Market cap ÷ PAT",source:mk,asof,better:"low"},
+    pe:{label:"P/E (LTM)",short:"P/E",group:"Valuation",fmt:"x",def:"Price to last-twelve-months (LTM) earnings",formula:"Screener Stock P/E: price ÷ LTM EPS (not FY26 PAT)",source:mk,asof,better:"low"},
+    bv:{label:"Book value per share",short:"BVPS",group:"Valuation",fmt:"inr",def:"Book value per share, latest balance sheet, unrounded",formula:"—",source:mk,asof},
+    ltmE:{label:"LTM earnings (implied)",short:"LTM earn.",group:"Profitability",fmt:"cr",def:"Earnings implied by the LTM P/E",formula:"Market cap ÷ P/E",source:der,asof,better:"high"},
     pb:{label:"P/B",short:"P/B",group:"Valuation",fmt:"x",def:"Price to book",formula:"Market cap ÷ book value",source:mk,asof,better:"low"},
-    roe:{label:"Implied ROE",short:"Impl. ROE",group:"Valuation",fmt:"chg",def:"Return on equity implied by the two multiples",formula:"P/B ÷ P/E",source:der,asof,better:"high"},
+    roe:{label:"LTM implied ROE",short:"LTM ROE",group:"Profitability",fmt:"chg",def:"Return on equity implied by the multiples: LTM earnings over latest book value; not reported ROE",formula:"P/B ÷ P/E",source:der,asof,better:"high"},
+    roe26:{label:"FY26 ROE",short:"FY26 ROE",group:"Profitability",fmt:"chg",def:"Return on equity for FY26 as reported by Screener",formula:"Net profit ÷ average equity, year to Mar 2026 (Screener)",source:mk,asof,better:"high"},
+    roeChg:{label:"LTM vs FY26 ROE",short:"ROE Δ",group:"Profitability",fmt:"pp",def:"LTM implied ROE minus FY26 ROE; positive = returns rising since FY26",formula:"LTM implied ROE − FY26 ROE",source:der,asof,better:"high"},
     pr:{label:"Promoter holding",short:"Promoter",group:"Ownership",fmt:"pct",def:"Promoter and promoter-group shareholding",formula:"Latest quarterly shareholding pattern",source:mk,asof,better:"high"},
     fii:{label:"FII holding",short:"FII",group:"Ownership",fmt:"pct",def:"Foreign institutional shareholding",formula:"—",source:mk,asof},
     dii:{label:"DII holding",short:"DII",group:"Ownership",fmt:"pct",def:"Domestic institutional shareholding",formula:"—",source:mk,asof},
