@@ -63,5 +63,5 @@ jobs:
           git add index.html ems/index.html docs/palette-report.txt
           git diff --cached --quiet && echo "No changes" && exit 0
           git commit -m "Rebuild dashboards"
-          git pull --rebase --autostash
-          git push
+          for i in 1 2 3; do git pull --rebase -X theirs origin main && git push && exit 0; sleep 10; done
+          exit 1

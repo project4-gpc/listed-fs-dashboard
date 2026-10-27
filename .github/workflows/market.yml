@@ -34,9 +34,11 @@ jobs:
           git diff --quiet market.js && echo "No changes" && exit 0
           git add market.js
           git commit -m "Market refresh $(TZ=Asia/Kolkata date +'%d %b %Y')"
-          # rebuild after committing so the Overview compares against the previous refresh
+          # pick up anything pushed while we were scraping, then rebuild so the Overview compares against the previous refresh
+          git pull --rebase -X theirs origin main
           pwsh ./build.ps1
           pwsh ./qa.ps1
           git add index.html ems/index.html
           git diff --cached --quiet || git commit -m "Rebuild dashboards"
-          git push
+          for i in 1 2 3; do git push && exit 0; sleep 10; git pull --rebase -X theirs origin main; done
+          exit 1
