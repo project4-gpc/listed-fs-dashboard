@@ -23,6 +23,12 @@ A new dashboard is one adapter file plus its data files; the shell, pages, chart
 - **Presentation mode** (`P`, the Present button, or `?pv=1` in a link) shows the IC pack slides full screen with arrow-key navigation. The same slide builder prints the IC pack.
 - **Command palette** (Ctrl/⌘+K or `/`): companies and commands. `?` lists shortcuts.
 
+## Deal pipeline
+- Every dashboard gets a **Pipeline** page (kit/pipeline.js store, kit/pipeline-ui.js views): flow river, drag-and-drop board, deal drawer (stage stepper, owner, priority, next step, due and last-contact dates, pass reasons, notes, activity timeline), next-actions agenda, stalled-but-attractive chart, team workload and activity feed. Stages: Long list, Screened, Shortlisted, Outreach, Engaged, NDA & data, IC, plus Passed / On hold.
+- **Pipeline data is team data and never enters the published dashboard or the public repo.** It is kept on the user's device by default, or in a **private** GitHub repo with each user's own token (the store checks the repo is private before every session and refuses a public one). Commits there say only "Pipeline update".
+- Starting stages come from the data only (shortlisted, then screened via the adapter's `pipeline.seed`); nothing else is pre-filled. The design preview (`#/dev/pipeline-sample`) uses made-up sample companies, never real names with invented activity.
+- Records are keyed by company name; merges keep the newer record per company and the union of histories, so concurrent edits to different companies are never lost. Export / import of a JSON backup is in the Storage dialog.
+
 ## Brand
 Source: `brand/brand.json` (logo pixels, website, decks; no brand guide was supplied).
 Primary `#010039`, secondary `#002060`, accent `#97A8C1`; Martel for display headings, Heebo for body and every number (tabular digits).

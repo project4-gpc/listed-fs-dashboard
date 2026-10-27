@@ -24,13 +24,13 @@ function GitBytes([string[]]$argList){
 }
 function GitText([string[]]$a){ $b = GitBytes $a; if($null -eq $b){ return $null }; return $utf8.GetString($b).Trim() }
 
-$css = (ReadText 'kit/tokens.css') + "`n" + (ReadText 'kit/base.css') + "`n" + (ReadText 'kit/ui.css')
+$css = (ReadText 'kit/tokens.css') + "`n" + (ReadText 'kit/base.css') + "`n" + (ReadText 'kit/ui.css') + "`n" + (ReadText 'kit/pipeline.css')
 $fonts = "@font-face{font-family:'Heebo';font-style:normal;font-weight:100 900;font-display:swap;src:url(data:font/woff2;base64,$(B64 'kit/fonts/heebo-latin-var.woff2')) format('woff2')}`n" +
          "@font-face{font-family:'Martel';font-style:normal;font-weight:400;font-display:swap;src:url(data:font/woff2;base64,$(B64 'kit/fonts/martel-latin-400.woff2')) format('woff2')}`n" +
          "@font-face{font-family:'Martel';font-style:normal;font-weight:700;font-display:swap;src:url(data:font/woff2;base64,$(B64 'kit/fonts/martel-latin-700.woff2')) format('woff2')}"
 $logo = "data:image/png;base64," + (B64 'brand/logo.png')
 $favicon = "data:image/png;base64," + (B64 'brand/favicon.png')
-$kitJs = @('kit/charts.js','kit/charts-x.js','kit/model.js','kit/xlsx.js') | ForEach-Object { ReadText $_ }
+$kitJs = @('kit/charts.js','kit/charts-x.js','kit/model.js','kit/xlsx.js','kit/pipeline.js','kit/pipeline-ui.js') | ForEach-Object { ReadText $_ }
 $appJs = ReadText 'kit/app.js'
 
 function Bundle($files, $getText){

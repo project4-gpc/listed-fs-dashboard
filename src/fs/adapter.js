@@ -162,6 +162,7 @@ function build(src, opts){
       {key:"pr",label:"Median promoter",fmt:"pct",value:cs=>K.median(cs.map(c=>c.m.pr)),ctx:cs=>`${cs.filter(c=>!(c.m.pr>0)).length} with no promoter`},
       {key:"netcash",label:"Net cash",fmt:"int",value:cs=>cs.filter(c=>c.m.nd!=null&&c.m.nd<=0).length,ctx:()=>"net debt ≤ 0",link:{t:["netcash"]}}
     ],
+    pipeline:{seed:c=>c.shortlisted?"short":c.fit?"screened":"long"},
     treemap:{size:["mc","r26","p26","ctrl"], color:["pb","pe","roe26","roe","pg3","rg3","pr"]},
     scatter:{x:"mc", y:"pb", size:"p26", axes:["mc","pe","pb","roe","roe26","r26","p26","pg","pg3","pm","pr","inst","nd","ctrl"]},
     scoring:{criteria:[

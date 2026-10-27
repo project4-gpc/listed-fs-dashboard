@@ -11,7 +11,7 @@
     main.querySelectorAll("svg.chart").forEach((s,i)=>{ if(!s.querySelector("path,rect,circle,polygon,line")) fail(where,`chart ${i} is empty`); });
     main.querySelectorAll("section.card").forEach(card=>{ if(card.querySelector("svg.chart")){ const sub=(card.querySelector(".sub")||{}).textContent||""; if(!/₹|%|x\b|cr|score|share|0–100/i.test(sub)) fail(where,`chart "${(card.querySelector("h2")||{}).textContent}" subtitle has no unit`); } });
     if(window.__ERRORS.length) fail(where, "script error: "+window.__ERRORS.splice(0).join(" | ")); };
-  for(const p of ["overview","screener","shortlist","compare","dq","method","dev/gallery"]){ goto("#/"+p); check(p); out.pages++; }
+  for(const p of ["overview","pipeline","screener","shortlist","compare","dq","method","dev/gallery","dev/pipeline-sample"]){ goto("#/"+p); check(p); out.pages++; }
   for(const c of M.companies){ goto("#/company/"+encodeURIComponent(c.id)); check("company/"+c.id);
     if(!document.querySelector("#main .kpis")) fail("company/"+c.id,"no KPI strip"); out.companies++; }
   // numbers trace to the model: every visible screener cell = fmt(model value)
@@ -54,6 +54,59 @@
     dispatchEvent(new KeyboardEvent("keydown",{key:"Escape"}));
     if(window.__ERRORS.length) fail("interactions","script error: "+window.__ERRORS.splice(0).join(" | "));
   }catch(e){ fail("interactions", String(e&&e.stack||e)); }
+  // pipeline: board, moves, drawer, drag and drop, persistence, and team sync against a mocked GitHub API
+  try{
+    const P=A.PIPE, U=A.PUI, PL=window.Pipeline;
+    if(!P||!U) fail("pipeline","pipeline module missing");
+    else {
+      const backup=JSON.stringify(P.state);
+      goto("#/pipeline");
+      if(document.querySelectorAll(".pl-col").length<8) fail("pipeline","board columns missing");
+      if(document.querySelectorAll("#plRiver .rv-node").length!==7) fail("pipeline","river stages missing");
+      const c=M.companies.find(x=>P.stageOf(x)==="screened")||M.companies.find(x=>P.stageOf(x)==="long");
+      P.update(c,{stage:"outreach"}); goto("#/pipeline");
+      if(!document.querySelector(`.pl-col[data-stage="outreach"] .pc[data-id="${CSS.escape(c.id)}"]`)) fail("pipeline","moved card is not in the Outreach column");
+      const lg=P.get(c).log; if(!lg.length||lg[lg.length-1].k!=="stage"||lg[lg.length-1].to!=="outreach") fail("pipeline","stage move was not logged");
+      // drawer edits and notes
+      U.openDrawer(c); const dr=document.querySelector(".drawer");
+      if(!dr||dr.hidden) fail("pipeline","drawer did not open");
+      else { const o=dr.querySelector('[data-f="owner"]'); o.value="QA Owner"; o.dispatchEvent(new Event("change"));
+        if(P.get(c).owner!=="QA Owner") fail("pipeline","owner edit not saved");
+        const ta=dr.querySelector("#drNote"); ta.value="QA note"; dr.querySelector("[data-addnote]").click();
+        if(!P.get(c).log.some(e=>e.k==="note"&&e.text==="QA note")) fail("pipeline","note not saved"); }
+      U.closeDrawer();
+      // drag and drop with a simulated mouse
+      goto("#/pipeline"); const card=document.querySelector(`.pc[data-id="${CSS.escape(c.id)}"]`), board=document.getElementById("plBoard"), col=document.querySelector('.pl-col[data-stage="engaged"]');
+      if(card&&board&&col){ card.scrollIntoView({block:"center",inline:"center"}); const a=card.getBoundingClientRect(); const ev=(t,x,y)=>new PointerEvent(t,{bubbles:true,cancelable:true,clientX:x,clientY:y,button:0,buttons:1,pointerId:7,pointerType:"mouse",isPrimary:true});
+        card.dispatchEvent(ev("pointerdown",a.left+30,a.top+12)); col.scrollIntoView({block:"nearest",inline:"nearest"}); const b=col.getBoundingClientRect();
+        const tx=b.left+b.width/2, ty=Math.min(Math.max(b.top,90)+60, Math.min(b.bottom,innerHeight)-30);
+        board.dispatchEvent(ev("pointermove",a.left+60,a.top+40)); board.dispatchEvent(ev("pointermove",tx,ty)); board.dispatchEvent(ev("pointerup",tx,ty));
+        if(P.stageOf(c)!=="engaged") fail("pipeline",`drag and drop did not move the card (stage ${P.stageOf(c)})`); }
+      else fail("pipeline","drag test setup failed");
+      await P.push(); let saved=null; try{ saved=JSON.parse(localStorage.getItem("gpc-pipe-"+M.key)||"null"); }catch(e){}
+      if(!saved||!saved.recs||!saved.recs[c.name]) fail("pipeline","pipeline not kept on this device");
+      // team sync against a mocked GitHub API (no network, no real token)
+      const realFetch=window.fetch, srv={priv:true,content:null,sha:null,conflict:true}, J=(o,s=200)=>new Response(JSON.stringify(o),{status:s,headers:{"Content-Type":"application/json"}});
+      window.fetch=async(url,opt={})=>{ const u=String(url); if(!u.startsWith("https://mock.test/")) return realFetch(url,opt);
+        if(/\/repos\/o\/r$/.test(u)) return J({private:srv.priv,full_name:"o/r"});
+        if((opt.method||"GET")==="GET") return srv.content?J({sha:srv.sha,content:PL.b64encode(srv.content)}):J({message:"Not Found"},404);
+        const body=JSON.parse(opt.body);
+        if(srv.conflict){ srv.conflict=false; srv.content=JSON.stringify({v:1,recs:{"Teammate Co":{stage:"nda",u:new Date().toISOString(),log:[]}}}); srv.sha="s2"; return J({message:"conflict"},409); }
+        if(srv.sha&&body.sha!==srv.sha) return J({message:"stale"},409);
+        srv.content=PL.b64decode(body.content); srv.sha="s"+(Math.random()*1e6|0); return J({content:{sha:srv.sha}}); };
+      try{
+        const s=new PL.Store({key:"qa-mock",memory:true}); s.saveCfg({mode:"github",repo:"o/r",token:"t",api:"https://mock.test"});
+        s.update({name:"QA Co"},{stage:"engaged"}); await s.push();
+        const remote=JSON.parse(srv.content||"{}");
+        if(s.status.state!=="synced") fail("pipeline sync",`not synced: ${s.status.state} ${s.status.msg}`);
+        if(!remote.recs||!remote.recs["QA Co"]||!remote.recs["Teammate Co"]) fail("pipeline sync","a concurrent teammate edit was lost in the merge");
+        srv.priv=false; const s2=new PL.Store({key:"qa-mock2",memory:true}); s2.saveCfg({mode:"github",repo:"o/r",token:"t",api:"https://mock.test"}); s2.update({name:"QA Co"},{stage:"outreach"}); await s2.push();
+        if(s2.status.state!=="error"||!/public/i.test(s2.status.msg)) fail("pipeline sync","a public repo was not refused");
+      } finally { window.fetch=realFetch; }
+      P.state=JSON.parse(backup); await P.push(); goto("#/pipeline");
+    }
+    if(window.__ERRORS.length) fail("pipeline","script error: "+window.__ERRORS.splice(0).join(" | "));
+  }catch(e){ fail("pipeline", String(e&&e.stack||e)); }
   goto("#/overview");
   out.ok = out.failures.length===0;
   return out;

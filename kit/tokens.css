@@ -156,5 +156,7 @@
   --r-4: 16px;
   --hero-pad: 28px;
   --lab-h: 470px;
+  --col-w: 276px; --drawer-w: 500px; --av: 26px; --av-sm: 18px;
+  --river-particle: rgba(255,255,255,.85);
   --tm-h: 430px;
 }

@@ -102,6 +102,7 @@ function build(src, opts){
       {key:"em",label:"Median EBITDA margin",fmt:"chg",value:cs=>K.median(cs.map(c=>c.m.em)),ctx:()=>"FY25"},
       {key:"pm",label:"Median net margin",fmt:"chg",value:cs=>K.median(cs.map(c=>c.m.pm)),ctx:()=>"FY25"}
     ],
+    pipeline:{seed:c=>c.shortlisted?"short":c.ev?"screened":"long"},
     treemap:{size:["r","e","p"], color:["em","pm","conv"]},
     scatter:{x:"r", y:"em", size:"p", axes:["r","e","p","em","pm","conv"]},
     scoring:{criteria:[

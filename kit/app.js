@@ -15,6 +15,10 @@ const MET = M.metrics, TEXT = M.textCols || {}, LOGO = DATA.logo || "", SIBS = D
 const CRIT = M.scoring ? M.scoring.criteria : [];
 const RM = ()=> !!(window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches);
 window.MODEL = M;
+// deal pipeline: team data, kept on this device or in a private repo (kit/pipeline.js); seeded from the data only
+const PIPE = new window.Pipeline.Store({key:M.key, stages:window.Pipeline.STAGES, seed:(M.pipeline&&M.pipeline.seed)||(c=>c.shortlisted?"short":"long")});
+TEXT.stage = {label:"Pipeline stage",short:"Stage",group:"Pipeline",def:"Deal stage from the team pipeline (team data; not part of the published file)",source:"Pipeline"};
+M.views.forEach(v=>{ if((v.key==="default"||v.key==="all")&&!v.cols.includes("stage")) v.cols=v.cols.concat("stage"); });
 
 // ---------- formatting ----------
 const MINUS = "−";
@@ -63,7 +67,10 @@ const ICON = {
   play:'<path d="M7 4l13 8-13 8z"/>', help:'<circle cx="12" cy="12" r="9"/><path d="M9.5 9a2.5 2.5 0 015 .5c0 1.7-2.5 2-2.5 3.5M12 17h.01"/>',
   plus:'<path d="M12 5v14M5 12h14"/>', target:'<circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="3"/>',
   map:'<path d="M3 3h8v8H3zM13 3h8v5h-8zM13 10h8v11h-8zM3 13h8v8H3z"/>', chart:'<path d="M4 20V4M4 20h16M8 16l3-5 3 3 5-8"/>',
-  bolt:'<path d="M13 2L4 14h7l-1 8 9-12h-7z"/>', table:'<path d="M3 5h18v14H3zM3 10h18M9 10v9"/>'
+  bolt:'<path d="M13 2L4 14h7l-1 8 9-12h-7z"/>', table:'<path d="M3 5h18v14H3zM3 10h18M9 10v9"/>',
+  more:'<circle cx="5" cy="12" r="1.2"/><circle cx="12" cy="12" r="1.2"/><circle cx="19" cy="12" r="1.2"/>', cloud:'<path d="M7 18h10a4 4 0 00.6-7.95A6 6 0 006.2 9.1 4.5 4.5 0 007 18z"/>',
+  lock:'<rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 018 0v3"/>', cog:'<circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M4.9 19.1L7 17M17 7l2.1-2.1"/>',
+  pipeline:'<path d="M3 6h5l3 6-3 6H3M11 12h4M15 6h6M15 18h6M15 6l3 6-3 6"/>'
 };
 const icon = (k,extra="")=>`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" ${extra}>${ICON[k]||""}</svg>`;
 
@@ -80,7 +87,7 @@ function route(){
     q:q.get("q")||"", g:list(q.get("g")), t:list(q.get("t")), r:parseR(q.get("r")), s:list(q.get("s")), sel:list(q.get("sel")),
     c:list(q.get("c")), v:q.get("v")||"", cols:list(q.get("cols")), heat:q.get("heat")==="1", bars:q.get("bars")==="1", ch:q.get("ch")==="1", w:parseW(q.get("w")),
     ax:q.get("ax")||"", ay:q.get("ay")||"", sz:q.has("sz")?q.get("sz"):null, lg:q.get("lg")||"", qd:q.get("qd")==="1", lb:q.get("lb")||"sl", z:parseZ(q.get("z")), pin:q.get("pin")||"",
-    tm:q.get("tm")||"", tc:q.get("tc")||"", tab:q.get("tab")||"", pack:q.get("pack")==="1", pv:q.has("pv")?(+q.get("pv")||1):0 } };
+    tm:q.get("tm")||"", tc:q.get("tc")||"", tab:q.get("tab")||"", stg:list(q.get("stg")), pq:q.get("pq")||"", own:q.get("own")||"", od:q.get("od")==="1", open:q.get("open")||"", pack:q.get("pack")==="1", pv:q.has("pv")?(+q.get("pv")||1):0 } };
 }
 function qs(st){
   const q=[]; const e=encodeURIComponent, r4=v=>+(+v).toPrecision(5);
@@ -98,13 +105,14 @@ function qs(st){
   if(st.lg) q.push("lg="+st.lg); if(st.qd) q.push("qd=1"); if(st.lb&&st.lb!=="sl") q.push("lb="+st.lb);
   if(st.z) q.push("z="+[st.z.x[0],st.z.x[1],st.z.y[0],st.z.y[1]].map(r4).join("~"));
   if(st.pin) q.push("pin="+e(st.pin)); if(st.tm) q.push("tm="+st.tm); if(st.tc) q.push("tc="+st.tc); if(st.tab) q.push("tab="+st.tab);
+  if(st.stg&&st.stg.length) q.push("stg="+st.stg.join(",")); if(st.pq) q.push("pq="+e(st.pq)); if(st.own) q.push("own="+e(st.own)); if(st.od) q.push("od=1"); if(st.open) q.push("open="+e(st.open));
   return q.length?"?"+q.join("&"):"";
 }
 const href = (page, arg, st)=>`#/${page}${arg?"/"+encodeURIComponent(arg):""}${qs(st||{})}`;
 function go(page, arg, st, replace){ const h=href(page,arg,st); if(replace) history.replaceState(null,"",h); else history.pushState(null,"",h); render(); }
-const filterOnly = st=>({q:st.q,g:st.g,t:st.t,r:st.r,sel:st.sel});
+const filterOnly = st=>({q:st.q,g:st.g,t:st.t,r:st.r,sel:st.sel,stg:st.stg});
 const withState = (st, patch)=>({...st, ...patch});
-const filtersActive = st=>!!(st.q||(st.g&&st.g.length)||(st.t&&st.t.length)||(st.sel&&st.sel.length)||Object.values(st.r||{}).some(v=>v&&(v[0]!=null||v[1]!=null)));
+const filtersActive = st=>!!(st.q||(st.stg&&st.stg.length)||(st.g&&st.g.length)||(st.t&&st.t.length)||(st.sel&&st.sel.length)||Object.values(st.r||{}).some(v=>v&&(v[0]!=null||v[1]!=null)));
 
 // ---------- filtering + sorting + scoring ----------
 const TOG = Object.fromEntries(M.filters.toggles.map(t=>[t.key,t]));
@@ -112,6 +120,7 @@ function filtered(st, cs){
   cs = cs || M.companies; const q=(st.q||"").toLowerCase(); const sel=st.sel&&st.sel.length?new Set(st.sel):null;
   return cs.filter(c=>{
     if(sel&&!sel.has(c.id)) return false;
+    if(st.stg&&st.stg.length&&!st.stg.includes(PIPE.stageOf(c))) return false;
     if(q){ const hay=(c.name+" "+c.ticker+" "+c.code+" "+c.desc+" "+c.seg+" "+c.groups.map(g=>G[g.key]?.label).join(" ")).toLowerCase(); if(!hay.includes(q)) return false; }
     if(st.g&&st.g.length && !c.groups.some(g=>st.g.includes(g.key))) return false;
     for(const t of st.t||[]) if(TOG[t] && !TOG[t].test(c)) return false;
@@ -122,7 +131,7 @@ function filtered(st, cs){
 function sortKeys(st){ return (st.s&&st.s.length?st.s:[M.views[0].cols.includes("mc")?"-mc":"-"+(M.scatter.x)]).map(s=>({k:s.replace(/^-/,""),dir:s.startsWith("-")?-1:1})); }
 function sorted(cs, st){
   const keys=sortKeys(st);
-  const val=(c,k)=> k==="name"?c.name : k==="ev"?(c.ev?1:0) : k==="score"?totalScore(c,st) : (c.nm&&c.nm[k])?null : c.m[k];
+  const val=(c,k)=> k==="name"?c.name : k==="ev"?(c.ev?1:0) : k==="stage"?PIPE.stageIndex(c) : k==="score"?totalScore(c,st) : (c.nm&&c.nm[k])?null : c.m[k];
   return cs.slice().sort((a,b)=>{ for(const {k,dir} of keys){ const va=val(a,k), vb=val(b,k);
     if(typeof va==="string"||typeof vb==="string"){ const r=String(va||"").localeCompare(String(vb||"")); if(r) return dir*r; continue; }
     if(va==null&&vb==null) continue; if(va==null) return 1; if(vb==null) return -1; if(va!==vb) return dir*(va-vb); } return a.name.localeCompare(b.name); });
@@ -146,7 +155,7 @@ function shortlistFileText(){
 function addCompare(id){ const st=route().st; const c=[...new Set([...(st.c||[]),id])].slice(-5); history.replaceState(null,"",href(route().page,route().arg,withState(st,{c}))); syncNav(); toast(`Added to compare (${c.length}/5). Open Compare to see them side by side.`); }
 
 // ---------- shell ----------
-const NAV = [["overview","Overview"],["screener","Screener"],["shortlist","Shortlist"],["compare","Compare"]];
+const NAV = [["overview","Overview"],["pipeline","Pipeline"],["screener","Screener"],["shortlist","Shortlist"],["compare","Compare"]];
 const NAV2 = [["dq","Data quality"],["method","Methodology"]];
 function freshness(){
   if(!M.asofDate) return {tone:"neu",label:"No as-of date"};
@@ -210,10 +219,10 @@ function shell(){
   addEventListener("keydown",e=>{
     if(!document.getElementById("present").hidden){ Present.key(e); return; }
     if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==="k"){ e.preventDefault(); openSearch(); return; }
-    if(e.key==="Escape"){ closeSearch(); closeKeys(); setDrawer(false); closePops(); return; }
+    if(e.key==="Escape"){ closeSearch(); closeKeys(); setDrawer(false); closePops(); if(PUI) PUI.closeDrawer(); return; }
     const typing=/^(INPUT|SELECT|TEXTAREA)$/.test((document.activeElement||{}).tagName||"")||document.activeElement?.isContentEditable;
     if(typing||e.ctrlKey||e.metaKey||e.altKey) return;
-    if(gPending){ gPending=false; const map={o:"overview",s:"screener",l:"shortlist",c:"compare",d:"dq",m:"method"}; if(map[e.key]){ e.preventDefault(); go(map[e.key],"",filterOnly(route().st)); } return; }
+    if(gPending){ gPending=false; const map={o:"overview",p:"pipeline",s:"screener",l:"shortlist",c:"compare",d:"dq",m:"method"}; if(map[e.key]){ e.preventDefault(); go(map[e.key],"",filterOnly(route().st)); } return; }
     if(e.key==="g"){ gPending=true; clearTimeout(gTimer); gTimer=setTimeout(()=>gPending=false,900); return; }
     if(e.key==="/"){ e.preventDefault(); openSearch(); }
     else if(e.key==="p"){ e.preventDefault(); Present.open(); }
@@ -228,7 +237,7 @@ function shell(){
 }
 function toast(m){ const t=document.getElementById("toast"); t.textContent=m; t.hidden=false; clearTimeout(toast._t); toast._t=setTimeout(()=>t.hidden=true,2800); }
 function showKeys(){ const k=document.getElementById("keys"); k.hidden=false;
-  const rows=[["Ctrl K  or  /","Search companies and run commands"],["P","Present (full screen); ← → to move, Esc to exit"],["G then O / S / L / C","Go to Overview, Screener, Shortlist, Compare"],["[  ]","Previous / next company in the current filter"],["Drag on a chart","Select companies (Shift-drag pans)"],["Ctrl / ⌘ + scroll","Zoom the positioning chart; double-click to reset"],["Arrow keys on a chart","Move between companies; Enter opens, Space pins"],["Esc","Close, clear selection"]];
+  const rows=[["Ctrl K  or  /","Search companies and run commands"],["P","Present (full screen); ← → to move, Esc to exit"],["G then O / P / S / L / C","Go to Overview, Pipeline, Screener, Shortlist, Compare"],["Shift + ← →","Move a focused pipeline card to the previous / next stage"],["[  ]","Previous / next company in the current filter"],["Drag on a chart","Select companies (Shift-drag pans)"],["Ctrl / ⌘ + scroll","Zoom the positioning chart; double-click to reset"],["Arrow keys on a chart","Move between companies; Enter opens, Space pins"],["Esc","Close, clear selection"]];
   k.firstElementChild.innerHTML=`<h2 style="margin-bottom:var(--s-3)">Keyboard shortcuts</h2><table>${rows.map(r=>`<tr><td>${r[0].split("  ").map(x=>`<kbd>${esc(x)}</kbd>`).join(" ")}</td><td>${esc(r[1])}</td></tr>`).join("")}</table>`;
   k.onclick=e=>{ if(e.target===k) closeKeys(); }; }
 function closeKeys(){ const k=document.getElementById("keys"); if(k) k.hidden=true; }
@@ -238,6 +247,7 @@ let sIdx=0, sItems=[];
 function actions(){ const st=route().st; return [
   {label:"Present to the room",icon:"play",hint:"P",run:()=>Present.open()},
   {label:"Export IC pack (PDF)",icon:"print",run:()=>exportPack()},
+  {label:"Pipeline storage and team sync",icon:"cog",run:()=>PUI&&PUI.settings(PIPE)},
   ...NAV.concat(NAV2).map(([k,l])=>({label:`Go to ${l}`,icon:k==="method"?"method":k,href:href(k,"",filterOnly(st))})),
   ...M.presets.map(p=>({label:`Screen: ${p.label}`,icon:"bolt",sub:p.desc,href:href("screener","",{t:p.state.t||[],r:p.state.r||{},s:p.state.s||[]})})),
   {label:"Positioning chart in the screener",icon:"chart",href:href("screener","",withState(filterOnly(st),{ch:true}))},
@@ -266,6 +276,7 @@ function paintS(q){ const ul=document.getElementById("sres"); const hl=s=>{ if(!
 function rangeLabel(k,[a,b]){ const m=MET[k]; const u=m.fmt==="cr"?"":m.fmt==="x"?"x":m.fmt==="pp"?" pp":"%"; return `${m.short} ${a!=null?a:"…"}–${b!=null?b:"…"}${u}`; }
 function chipItems(st){ const items=[];
   if(st.sel&&st.sel.length) items.push({label:`Selection · ${st.sel.length} compan${st.sel.length>1?"ies":"y"}`, rm:{sel:[]}});
+  (st.stg||[]).forEach(k=>PIPE.idx[k]!=null&&items.push({label:"Stage: "+PIPE.stages[PIPE.idx[k]].short, rm:{stg:st.stg.filter(x=>x!==k)}}));
   if(st.q) items.push({label:`“${st.q}”`, rm:{q:""}});
   (st.g||[]).forEach(k=>G[k]&&items.push({label:G[k].short, rm:{g:st.g.filter(x=>x!==k)}}));
   (st.t||[]).forEach(k=>TOG[k]&&items.push({label:TOG[k].label, rm:{t:st.t.filter(x=>x!==k)}}));
@@ -275,7 +286,7 @@ function chips(st){ const items=chipItems(st); if(!items.length) return "";
   return `<div class="chipbar" role="region" aria-label="Active filters">${items.map((it,i)=>`<span class="fchip">${esc(it.label)}<button type="button" data-chip="${i}" aria-label="Remove filter ${esc(it.label)}">${icon("x")}</button></span>`).join("")}<button type="button" class="linkbtn" data-reset>Reset</button></div>`; }
 function bindChips(root, st, page, arg){ const items=chipItems(st);
   root.querySelectorAll("[data-chip]").forEach(b=>b.onclick=()=>go(page,arg,withState(st,items[+b.dataset.chip].rm)));
-  root.querySelectorAll("[data-reset]").forEach(b=>b.onclick=()=>go(page,arg,withState(st,{q:"",g:[],t:[],r:{},sel:[]}))); }
+  root.querySelectorAll("[data-reset]").forEach(b=>b.onclick=()=>go(page,arg,withState(st,{q:"",g:[],t:[],r:{},sel:[],stg:[]}))); }
 
 // ---------- router ----------
 const PAGES = {};
@@ -290,12 +301,13 @@ function render(){
   const main=document.getElementById("main");
   const fn = PAGES[page] || PAGES.overview;
   const key=page+"|"+arg, same=key===lastKey;
+  if(!same&&lastKey&&PUI) PUI.closeDrawer();
   C.Tip.hide();
   if(!same){ main.classList.remove("enter"); void main.offsetWidth; if(!RM()) main.classList.add("enter"); }
   fn(main, st, arg, same);
   if(!same){ if(lastKey) { main.focus({preventScroll:true}); scrollTo({top:0}); } }
   lastKey=key;
-  document.title = `${({overview:"Overview",screener:"Screener",company:(byId.get(arg)||{}).name||"Company",shortlist:"Shortlist",compare:"Compare",dq:"Data quality",method:"Methodology",dev:"Chart gallery"})[page]||"Overview"} · ${M.product}`;
+  document.title = `${({overview:"Overview",pipeline:"Pipeline",screener:"Screener",company:(byId.get(arg)||{}).name||"Company",shortlist:"Shortlist",compare:"Compare",dq:"Data quality",method:"Methodology",dev:"Chart gallery"})[page]||"Overview"} · ${M.product}`;
 }
 
 // ======================================================================================
@@ -348,9 +360,9 @@ function kpiTiles(cs, prevCs, opts={}){
 }
 function headline(cs){ const ch=M.changes, vals=Object.fromEntries(M.kpis.map(k=>[k.key,k.value(cs)]));
   const chTxt = ch==null?"no previous snapshot to compare with yet":ch.length?`<span class="hn">${ch.length}</span> change${ch.length>1?"s":""} since the last refresh`:"no changes since the last refresh";
-  const n=v=>`<span class="hn">${v}</span>`;
-  return M.key==="fs" ? `${n(vals.universe)} companies screened; ${n(vals.fit)} fit the mandate; ${n(vals.short)} on the shortlist; ${chTxt}.`
-    : `${n(vals.universe)} companies on the outreach list; ${n(vals.profitable)} profitable; ${n(vals.evaluated)} evaluated; ${n(vals.short)} on the shortlist; ${chTxt}.`; }
+  const n=v=>`<span class="hn">${v}</span>`, pc=PUI?PUI.counts():null, inPlay=pc?PUI.INPLAY.reduce((a,k)=>a+pc[k],0):0, ip=inPlay?`${n(inPlay)} in play; `:"";
+  return M.key==="fs" ? `${n(vals.universe)} companies screened; ${n(vals.fit)} fit the mandate; ${n(vals.short)} on the shortlist; ${ip}${chTxt}.`
+    : `${n(vals.universe)} companies on the outreach list; ${n(vals.profitable)} profitable; ${n(vals.evaluated)} evaluated; ${n(vals.short)} on the shortlist; ${ip}${chTxt}.`; }
 
 PAGES.overview = (main, st, arg, same)=>{
   if(same && OV.lab && main.querySelector("#lab")){ ovUpdate(st); return; }
@@ -392,6 +404,7 @@ PAGES.overview = (main, st, arg, same)=>{
       <section class="card"><div class="card-h"><div><h2>Shortlist at a glance</h2><div class="sub">Ranked on default weights · score 0–100</div></div><a class="btn sm" href="${href("shortlist","",filterOnly(st))}">Open</a></div><div id="sg"></div></section>
     </div>
   </div>
+  <section class="card" style="margin-top:var(--s-4)" id="plGlanceCard"><div class="card-h"><div><h2>Deal pipeline</h2><div class="sub">Companies reaching each stage · % share moving on · next steps by due date · click a stage to open the pipeline</div></div><a class="btn sm" href="${href("pipeline","",{})}">${icon("pipeline")}Open pipeline</a></div><div id="plG"></div></section>
   <section class="card" style="margin-top:var(--s-4)" id="chgCard"></section>`;
   // decoration + count-up
   const cst=main.querySelector("#cst"); C.constellation(cst,{height:Math.max(180,cst.clientHeight||260), points:M.companies.map(c=>({id:c.id,x:c.pct[M.scatter.x],y:c.pct[M.scatter.y],star:c.shortlisted}))});
@@ -409,7 +422,7 @@ PAGES.overview = (main, st, arg, same)=>{
   main.querySelector("#tmSel").onchange=e=>ovSet({tm:e.target.value},true);
   main.querySelector("#tcSel").onchange=e=>ovSet({tc:e.target.value==="group"?"":e.target.value},true);
   OV.tmKey=""; ovUpdate(st);
-  ovFunnel(); ovGlance(st); ovChanges();
+  ovFunnel(); ovGlance(st); ovChanges(); if(PUI) PUI.glance(main.querySelector("#plG"), st);
 };
 function ovUpdate(st){
   const main=document.getElementById("main"), {ax,ay,sz}=labAxes(st), lg=st.lg||"";
@@ -514,6 +527,7 @@ function paintFilters(fp, st){
     <div class="fgrp"><label class="eyebrow" for="fq">Search</label><input class="inp" id="fq" type="search" placeholder="Name, ticker or keyword"></div>
     <div class="fgrp"><span class="eyebrow">${esc(M.groupLabel)}</span><div class="pills" id="gch">${used.map(g=>`<button type="button" class="gchip" data-g="${g.key}" aria-pressed="false" title="${esc(g.label)}"><span class="dot" style="background:${g.color}"></span>${esc(g.short)} <span class="n">${g.n}</span></button>`).join("")}</div></div>
     <div class="fgrp"><span class="eyebrow">Conditions</span>${M.filters.toggles.map(t=>`<label class="chk"><input type="checkbox" data-t="${t.key}">${esc(t.label)}</label>`).join("")}</div>
+    <div class="fgrp"><span class="eyebrow">Pipeline stage</span><div class="pills" id="stch">${PIPE.stages.map(s=>`<button type="button" class="gchip" data-stg="${s.key}" aria-pressed="false">${PUI?PUI.spill(s.key):esc(s.short)} <span class="n">${M.companies.filter(c=>PIPE.stageOf(c)===s.key).length}</span></button>`).join("")}</div></div>
     <div class="fgrp"><span class="eyebrow">Ranges · drag the handles</span>${M.filters.ranges.map(k=>`<div class="rngbox"><div id="hs-${k}"></div><div class="hs-exact"><input class="inp" type="number" step="any" data-r="${k}" data-side="0" placeholder="min" aria-label="${esc(MET[k].label)} minimum"><span>to</span><input class="inp" type="number" step="any" data-r="${k}" data-side="1" placeholder="max" aria-label="${esc(MET[k].label)} maximum"></div></div>`).join("")}</div>`;
   let deb;
   const setR=(k,val)=>{ const s=route().st, r={...s.r}; if(val[0]==null&&val[1]==null) delete r[k]; else r[k]=val; go("screener","",withState(s,{r}),true); };
@@ -521,14 +535,16 @@ function paintFilters(fp, st){
   fp.querySelector("#fq").addEventListener("input",e=>{ clearTimeout(deb); const v=e.target.value; deb=setTimeout(()=>go("screener","",withState(route().st,{q:v}),true),180); });
   fp.querySelectorAll("[data-g]").forEach(b=>b.onclick=()=>{ const s=route().st, k=b.dataset.g; go("screener","",withState(s,{g:s.g.includes(k)?s.g.filter(x=>x!==k):s.g.concat(k)})); });
   fp.querySelectorAll("[data-t]").forEach(i=>i.onchange=()=>{ const s=route().st, k=i.dataset.t; go("screener","",withState(s,{t:i.checked?s.t.concat(k):s.t.filter(x=>x!==k)})); });
+  fp.querySelectorAll("[data-stg]").forEach(b=>b.onclick=()=>{ const s=route().st, k=b.dataset.stg; go("screener","",withState(s,{stg:s.stg.includes(k)?s.stg.filter(x=>x!==k):s.stg.concat(k)})); });
   fp.querySelectorAll("[data-r]").forEach(i=>i.addEventListener("input",()=>{ clearTimeout(deb); deb=setTimeout(()=>{ const s=route().st, k=i.dataset.r; const cur=(s.r[k]||[null,null]).slice(); cur[+i.dataset.side]=i.value===""?null:+i.value; setR(k,cur); },250); }));
-  fp.querySelectorAll("[data-preset]").forEach(b=>b.onclick=()=>{ const s=route().st; const p=M.presets.find(x=>x.key===b.dataset.preset); go("screener","",withState(s,{q:"",g:[],t:[],r:{},sel:[],...(p?{t:p.state.t||[],r:p.state.r||{},s:p.state.s||s.s}:{})})); });
+  fp.querySelectorAll("[data-preset]").forEach(b=>b.onclick=()=>{ const s=route().st; const p=M.presets.find(x=>x.key===b.dataset.preset); go("screener","",withState(s,{q:"",g:[],t:[],r:{},sel:[],stg:[],...(p?{t:p.state.t||[],r:p.state.r||{},s:p.state.s||s.s}:{})})); });
   syncFilters(fp, st);
 }
 function syncFilters(fp, st){
   const fq=fp.querySelector("#fq"); if(document.activeElement!==fq) fq.value=st.q||"";
   fp.querySelectorAll("[data-g]").forEach(b=>b.setAttribute("aria-pressed",st.g.includes(b.dataset.g)));
   fp.querySelectorAll("[data-t]").forEach(i=>i.checked=st.t.includes(i.dataset.t));
+  fp.querySelectorAll("[data-stg]").forEach(b=>b.setAttribute("aria-pressed",(st.stg||[]).includes(b.dataset.stg)));
   fp.querySelectorAll("[data-r]").forEach(i=>{ if(document.activeElement===i) return; const v=(st.r[i.dataset.r]||[])[+i.dataset.side]; i.value=v==null?"":v; });
   Object.entries(SCR.hs).forEach(([k,h])=>{ if(!h.host.contains(document.activeElement)) h.set(st.r[k]||[null,null]); });
 }
@@ -557,12 +573,12 @@ function paintTable(res, st){
       <div class="tools"><label class="lbl" for="sax">X</label><select id="sax">${M.scatter.axes.map(a=>`<option value="${a}" ${a===ax?"selected":""}>${esc(MET[a].label)}</option>`).join("")}</select><label class="lbl" for="say">Y</label><select id="say">${M.scatter.axes.map(a=>`<option value="${a}" ${a===ay?"selected":""}>${esc(MET[a].label)}</option>`).join("")}</select></div></div><div id="scrLab"></div></div>`:""}
     <div class="tscroll"><table class="grid-t" aria-rowcount="${rows.length}">
       <thead><tr class="grp"><th class="stk l" rowspan="1"></th>${spans.map(s=>`<th colspan="${s.n}" class="gstart">${esc(s.g)}</th>`).join("")}</tr>
-      <tr class="cols"><th class="stk l sortable" data-k="name"${ariaSort("name")} tabindex="0" data-tip="Company name, ticker, ${esc(M.groupLabel.toLowerCase())} and flags. Click to sort.">Company ${sortInd("name")}</th>${cols.map(k=>{ const m=colDef(k), sortable=MET[k]?MET[k].fmt!=="spark":k==="ev";
+      <tr class="cols"><th class="stk l sortable" data-k="name"${ariaSort("name")} tabindex="0" data-tip="Company name, ticker, ${esc(M.groupLabel.toLowerCase())} and flags. Click to sort.">Company ${sortInd("name")}</th>${cols.map(k=>{ const m=colDef(k), sortable=MET[k]?MET[k].fmt!=="spark":(k==="ev"||k==="stage");
         return `<th class="${TEXT[k]?"l":""} ${starts.has(k)?"gstart":""} ${sortable?"sortable":""}" data-k="${k}"${ariaSort(k)} ${sortable?'tabindex="0"':""} data-tip="${esc(headerTip(k))}">${esc(m.short||m.label)}${MET[k]&&unitOf(k)&&MET[k].fmt!=="spark"?` <span class="subtle">${esc(unitOf(k))}</span>`:""}${sortInd(k)}</th>`; }).join("")}</tr></thead>
       <tbody>${rows.length?rows.map(c=>`<tr data-id="${c.id}" class="${c.fit?"mandate-edge":""}">
         <td class="stk l first"><span style="display:flex;gap:var(--s-2);align-items:flex-start"><button class="iconbtn" style="height:var(--s-6);min-width:var(--s-6);padding:var(--s-0);color:${isStarred(c)?"var(--warning)":"var(--n-300)"}" data-star="${c.id}" aria-pressed="${isStarred(c)}" aria-label="${isStarred(c)?"Remove from":"Add to"} shortlist: ${esc(c.name)}">${icon("shortlist",isStarred(c)?'fill="currentColor"':"")}</button><span><a class="cname" href="${href("company",c.id,filterOnly(st))}">${esc(c.name)}</a>
           <span class="cmeta">${c.ticker?`<span>${esc(c.exchange)}: ${esc(c.ticker)}</span>`:""}${c.groups.map(g=>gpill(g.key)).join("")}${flagPills(c)}<span class="rowacts"><button class="iconbtn miniicon" type="button" data-cmp="${esc(c.id)}" aria-label="Add ${esc(c.name)} to compare" data-tip="Add to compare">${icon("plus")}</button></span></span></span></span></td>
-        ${cols.map(k=>{ if(k==="desc") return `<td class="desc ${starts.has(k)?"gstart":""}">${esc(c.desc)}</td>`; if(k==="ev") return `<td class="${starts.has(k)?"gstart":""}">${c.ev?pill("Yes","pos"):pill("No","neu")}</td>`;
+        ${cols.map(k=>{ if(k==="desc") return `<td class="desc ${starts.has(k)?"gstart":""}">${esc(c.desc)}</td>`; if(k==="stage") return `<td class="l ${starts.has(k)?"gstart":""}">${PUI?PUI.stagePill(c):""}</td>`; if(k==="ev") return `<td class="${starts.has(k)?"gstart":""}">${c.ev?pill("Yes","pos"):pill("No","neu")}</td>`;
           const v=c.nm&&c.nm[k]?null:c.m[k]; return `<td class="${starts.has(k)?"gstart":""} ${st.heat?heatClass(k,v,stats):""}"${st.bars&&barMax[k]?barStyle(k,v,barMax[k]):""}>${fmt(k,c.m[k],c)}</td>`; }).join("")}</tr>`).join("")
         : `<tr><td class="l" colspan="${cols.length+1}"><div class="empty">No companies match these filters. Remove a chip above or press Reset.</div></td></tr>`}</tbody></table></div>`;
   // chart panel (linked)
@@ -609,7 +625,7 @@ function colChooser(btn, st){
 function exportRows(st){
   const cols=colsFor(st).filter(k=>!MET[k]||MET[k].fmt!=="spark"), rows=sorted(filtered(st),st);
   const head=["Company","Ticker",M.groupLabel].concat(cols.map(k=>{ const m=colDef(k); return m.label+(MET[k]&&unitOf(k)?` (${unitOf(k).replace("₹","INR")})`:""); })).concat(["Flags","Shortlisted"]);
-  const body=rows.map(c=>[c.name,c.code||c.ticker,c.groups.map(g=>G[g.key]?.label).join("; ")].concat(cols.map(k=>k==="desc"?c.desc:k==="ev"?(c.ev?"Yes":"No"):(c.nm&&c.nm[k])?"n.m.":(c.m[k]==null?"":+c.m[k].toFixed(4)))).concat([c.flags.map(f=>f.label).join("; "), c.shortlisted?"Yes":""]));
+  const body=rows.map(c=>[c.name,c.code||c.ticker,c.groups.map(g=>G[g.key]?.label).join("; ")].concat(cols.map(k=>k==="desc"?c.desc:k==="stage"?PIPE.stages[PIPE.stageIndex(c)].label:k==="ev"?(c.ev?"Yes":"No"):(c.nm&&c.nm[k])?"n.m.":(c.m[k]==null?"":+c.m[k].toFixed(4)))).concat([c.flags.map(f=>f.label).join("; "), c.shortlisted?"Yes":""]));
   return [head].concat(body);
 }
 function download(blob, name){ const a=document.createElement("a"); a.href=URL.createObjectURL(blob); a.download=name; document.body.appendChild(a); a.click(); setTimeout(()=>{ URL.revokeObjectURL(a.href); a.remove(); },500); }
@@ -651,7 +667,7 @@ PAGES.company = (main, st, id)=>{
       <span class="eyebrow"><a href="${href("screener","",st)}">Screener</a> / Company${i>=0?` · ${i+1} of ${list.length} in the current filter`:" · outside the current filter"}</span>
       <h1 class="hero-h">${esc(c.name)}</h1>
       <div class="pills" style="margin-top:var(--s-2)">${c.ticker?`<span class="num caption" style="color:var(--on-dark-muted)">${esc(c.exchange)}: ${esc(c.ticker)}</span>`:`<span class="caption" style="color:var(--on-dark-muted)">${esc(c.exchange)}</span>`}${c.groups.map(g=>gpill(g.key)+(g.pct!=null?` <span class="num caption" style="color:var(--on-dark-subtle)">${g.pct}%</span>`:"")).join("")}
-        ${c.verdict?pill(c.verdict.label,c.verdict.tone,"Verdict from shortlist diligence"):""}${M.mandate?(c.fit?pill("Mandate fit","info",M.mandate.desc):pill("Outside mandate","neu",M.mandate.desc)):""}${c.shortlisted?pill("Shortlisted","brand"):""}${CRIT.length?pill(`Score ${total.toFixed(0)} · #${rank} of ${M.companies.length}`,"outline","Weighted score on default weights, ranked across the universe"):""}</div>
+        ${c.verdict?pill(c.verdict.label,c.verdict.tone,"Verdict from shortlist diligence"):""}${M.mandate?(c.fit?pill("Mandate fit","info",M.mandate.desc):pill("Outside mandate","neu",M.mandate.desc)):""}${c.shortlisted?pill("Shortlisted","brand"):""}${CRIT.length?pill(`Score ${total.toFixed(0)} · #${rank} of ${M.companies.length}`,"outline","Weighted score on default weights, ranked across the universe"):""}${PUI?PUI.heroPills(c):""}</div>
       <p class="hero-sub" style="margin-top:var(--s-2)">Last refreshed ${esc(M.asof||"n/a")}${c.updated?` · diligence ${esc(c.updated)}`:""}</p>
       <div class="hero-acts" style="margin-top:var(--s-3)">${prev?`<a class="btn" data-prev href="${href("company",prev.id,st)}" aria-label="Previous company: ${esc(prev.name)}">${icon("prev")}Previous</a>`:""}${nxt?`<a class="btn" data-next href="${href("company",nxt.id,st)}" aria-label="Next company: ${esc(nxt.name)}">Next${icon("next")}</a>`:""}
         <button class="btn" type="button" data-cmp="${esc(c.id)}">${icon("plus")}Compare</button><a class="btn" href="${href("overview","",withState(filterOnly(st),{pin:c.id}))}">${icon("target")}Show on map</a></div></div>
@@ -665,6 +681,7 @@ PAGES.company = (main, st, id)=>{
     points:M.companies.map(x=>({id:x.id,x:x.pct[mx],y:x.pct[my],star:x.prim===c.prim&&x.id!==c.id,self:x.id===c.id,tip:`<b>${esc(x.name)}</b><br>${esc(MET[mx].short)} ${esc(fmtPlain(mx,x.m[mx]))} · ${esc(MET[my].short)} ${esc(fmtPlain(my,x.m[my]))}`}))});
   mini.querySelectorAll("circle[data-id]").forEach(n=>n.addEventListener("click",()=>go("company",n.dataset.id,filterOnly(st))));
   const cg=main.querySelector("#cg"); const card=(id,t,sub,body="",cls="")=>{ cg.insertAdjacentHTML("beforeend",`<section class="card ${cls}" id="${id}"><div class="card-h"><div><h2>${t}</h2><div class="sub">${sub}</div></div></div>${body}</section>`); return cg.lastElementChild; };
+  if(PUI){ const el=card("pipe","Deal pipeline","Stage, owner, next step and activity · team data kept outside the published dashboard",`<div class="pp"></div>`); PUI.companyPanel(el.querySelector(".pp"), c); }
   if(cfg.fin && c.fin){
     const pat=c.fin.pat, lastG=c.nm.pg?null:c.m.pg;
     const t = lastG!=null? `FY26 PAT ${lastG>=0?"up":"down"} ${Math.abs(lastG).toFixed(0)}% on FY25` : pat[2]!=null?`FY26 PAT ₹${nf(pat[2],1)} cr (growth n.m.)`:"Revenue and PAT";
@@ -803,6 +820,7 @@ PAGES.compare = (main, st)=>{
       <tbody>${M.compare.map(sec=>`<tr class="sec"><td colspan="${cs.length+1}">${esc(sec.sec)}</td></tr>${sec.rows.map(rowHtml).join("")}`).join("")}
       <tr class="sec"><td colspan="${cs.length+1}">Score</td></tr><tr><td class="l">Weighted score (0–100)</td>${(()=>{ const v=cs.map(c=>totalScore(c,st)); const mx=Math.max(...v), mn=Math.min(...v); return v.map(x=>`<td class="${cs.length>1&&x===mx?"best":cs.length>1&&x===mn?"worst":""}">${x.toFixed(1)}</td>`).join(""); })()}</tr>
       <tr><td class="l">Verdict</td>${cs.map(c=>`<td class="note">${c.verdict?pill(c.verdict.label,c.verdict.tone):"–"}</td>`).join("")}</tr>
+      <tr class="sec"><td colspan="${cs.length+1}">Pipeline</td></tr><tr><td class="l">Stage</td>${cs.map(c=>`<td class="note">${PUI?PUI.stagePill(c):"–"}</td>`).join("")}</tr><tr><td class="l">Owner · next step</td>${cs.map(c=>{ const r=PIPE.get(c); return `<td class="note">${esc([r.owner,r.next].filter(Boolean).join(" · ")||"–")}</td>`; }).join("")}</tr>
       <tr class="sec"><td colspan="${cs.length+1}">Notes</td></tr><tr><td class="l">Thesis / notes</td>${cs.map(c=>`<td class="note">${esc(c.thesis||"–")}</td>`).join("")}</tr></tbody></table></div></section>`
     :`<div class="empty">Nothing to compare. Add companies above or shortlist some first.</div>`}
     <p class="caption">Prints on one landscape page. Figures as of ${esc(M.asof||"n/a")}.</p>`;
@@ -843,10 +861,12 @@ PAGES.method = (main)=>{
 // ======================================================================================
 // Dev chart gallery (every chart type, live data)
 // ======================================================================================
-PAGES.dev = (main)=>{
+let SAMPLE=null;
+PAGES.dev = (main, st, arg, same)=>{
+  if(arg==="pipeline-sample"&&PUI){ PUI.page(main, st, arg, same, SAMPLE||(SAMPLE=PUI.sampleCtx())); return; }
   const sl=M.companies.filter(c=>c.shortlisted)[0]||M.companies[0], x=M.scatter.x, y=M.scatter.y;
-  const items=[["Positioning lab (interactive scatter)",`${MET[x].label} (${unitOf(x)}) vs ${MET[y].label} (${unitOf(y)}) · drag, pin, zoom`],["Treemap",`Tile size ₹ cr by ${M.groupLabel.toLowerCase()}`],["Funnel","Companies per stage · % of universe"],["Radar scorecard","Percentile score 0–100"],["Beeswarm vs peers","Universe distribution in each metric's units (x, %, ₹ cr)"],["Parallel profiles","Percentile within the universe, 0–100"],["Bars with margin band","Revenue and PAT ₹ cr, margin %"],["Columns (single series)","₹ cr"],["Dot plot vs peers","Peer distribution in each metric's units (x, %, ₹ cr)"],["Labelled stacked bar","Share of total, %"],["Score contribution bars (static)","Score points, 0–100 scale"],["Animated scoreboard","Score points, 0–100 scale"],["Histogram range slider","Distribution of ₹ cr values"],["Waterfall","₹ cr"],["Sparklines","Trend, ₹ cr"],["Palette and shapes","Categorical palette with marker shapes; sequential and diverging scales"]];
-  main.innerHTML=`<div class="ph"><div><span class="eyebrow">Developer · chart gallery</span><h1>Every chart type, live data</h1><p>For design review: hover, legends, labels, keyboard and reduced motion.</p></div></div>
+  const items=[["Positioning lab (interactive scatter)",`${MET[x].label} (${unitOf(x)}) vs ${MET[y].label} (${unitOf(y)}) · drag, pin, zoom`],["Treemap",`Tile size ₹ cr by ${M.groupLabel.toLowerCase()}`],["Funnel","Companies per stage · % of universe"],["Radar scorecard","Percentile score 0–100"],["Beeswarm vs peers","Universe distribution in each metric's units (x, %, ₹ cr)"],["Parallel profiles","Percentile within the universe, 0–100"],["Bars with margin band","Revenue and PAT ₹ cr, margin %"],["Columns (single series)","₹ cr"],["Dot plot vs peers","Peer distribution in each metric's units (x, %, ₹ cr)"],["Labelled stacked bar","Share of total, %"],["Score contribution bars (static)","Score points, 0–100 scale"],["Animated scoreboard","Score points, 0–100 scale"],["Histogram range slider","Distribution of ₹ cr values"],["Waterfall","₹ cr"],["Sparklines","Trend, ₹ cr"],["Palette and shapes","Categorical palette with marker shapes; sequential and diverging scales"],["Pipeline river","Companies reaching each stage · % share moving on"]];
+  main.innerHTML=`<div class="ph"><div><span class="eyebrow">Developer · chart gallery</span><h1>Every chart type, live data</h1><p>For design review: hover, legends, labels, keyboard and reduced motion. <a href="#/dev/pipeline-sample">Pipeline design preview with sample data</a>.</p></div></div>
     <div class="grid g2">${items.map((t,i)=>`<section class="card gallery-item"><div class="card-h"><div><h2>${t[0]}</h2><div class="sub">${esc(t[1])}</div></div></div><div id="g${i}" class="${i===5?"pc-scroll":""}"></div><div class="legend" id="gl${i}"></div></section>`).join("")}</div>`;
   new C.Lab(main.querySelector("#g0"),{...labOpts({lb:"sl"},"overview",{}),height:340});
   const sz=(M.treemap&&M.treemap.size||[])[0]; C.treemap(main.querySelector("#g1"),{height:320,groups:M.groups.map(g=>{ const kids=M.companies.filter(c=>c.prim===g.key&&c.m[sz]>0).map(c=>({id:c.id,label:shortName(c.name),value:c.m[sz],fill:`color-mix(in srgb, ${g.color} 30%, var(--surface))`,sub:fmtPlain(sz,c.m[sz])})); return {key:g.key,label:g.short,color:g.color,value:kids.reduce((a,b)=>a+b.value,0),children:kids,sub:""}; }),tipLeaf:k=>esc(k.label),tipGroup:g=>esc(g.label)});
@@ -866,6 +886,7 @@ PAGES.dev = (main)=>{
   const hk=M.filters.ranges[0]; new C.HistSlider(main.querySelector("#g12"),{label:MET[hk].label,values:M.companies.map(c=>c.m[hk]),fmt:v=>tick(hk,v),sel:[null,null]});
   C.waterfall(main.querySelector("#g13"),{max:100,fmt:v=>nf(v,1),steps:[{label:"Step A",start:0,end:40,kind:"add"},{label:"Step B",start:40,end:65,kind:"offer"},{label:"Premium",start:65,end:80,kind:"premium"},{label:"Total",start:0,end:80,kind:"total"}]});
   main.querySelector("#g14").innerHTML=M.companies.slice(0,6).map(c=>`<span style="display:inline-flex;gap:var(--s-2);align-items:center;margin-right:var(--s-5)">${esc(shortName(c.name))} ${M.metrics.sRev?C.spark([c.m.r24,c.m.r25,c.m.r26]):C.spark([c.m.p,c.m.e,c.m.r])}</span>`).join("");
+  if(PUI) PUI.drawSlide(main.querySelector("#g16"));
   main.querySelector("#g15").innerHTML=`<div class="legend">${C.SHAPES.map((s,j)=>`<span style="display:inline-flex;align-items:center;gap:var(--s-1)">${C.legendSwatch(C.vizVar(j),s)} viz-${j+1}</span>`).join("")}</div><div class="legend">${C.scaleLegend("seq","seq-1","seq-7")} ${C.scaleLegend("div","div-n3","div-p3")}</div>`;
 };
 
@@ -881,6 +902,7 @@ function slidesHtml(st){
   html+=slide("Overview","Overview",`<p class="headline">${headline(cs)}</p><section class="kpis">${kpiTiles(cs,PREV?PREV.companies:null,{static:true})}</section>
     <div class="grid" style="grid-template-columns:1.6fr 1fr;margin-top:var(--s-4)"><section class="card"><div class="card-h"><div><h2>Positioning</h2><div class="sub">${esc(MET[M.scatter.x].label)} (${unitOf(M.scatter.x)}) vs ${esc(MET[M.scatter.y].label)} (${unitOf(M.scatter.y)}) · dashed = median</div></div></div><div data-chart="scatter"></div></section>
     <section class="card"><div class="card-h"><h2>Screening funnel</h2></div><div class="funnel">${funnel.map(s=>`<div class="fstage"><span><span class="l">${esc(s.label)}</span><br><span class="d">${esc(s.desc)}</span></span><b>${s.n}</b><span class="bar"><i style="width:${(s.n/Math.max(1,funnel[0].n)*100).toFixed(1)}%"></i></span></div>`).join("")}</div></section></div>`);
+  if(PUI) html+=slide("Deal pipeline","Pipeline",PUI.slideHtml());
   const sz=(M.treemap&&M.treemap.size||[])[0];
   if(sz) html+=slide("Universe map","Overview",`<p class="caption">Each tile is a company sized by ${esc(MET[sz].label.toLowerCase())} (₹ cr), grouped by ${esc(M.groupLabel.toLowerCase())}.</p><div data-chart="treemap" data-size="${sz}"></div>`);
   const rows=sorted(filtered(st),st), top=rows.slice(0,14), cols=colsFor(st).filter(k=>k!=="desc"&&(!MET[k]||MET[k].fmt!=="spark")).slice(0,11);
@@ -911,6 +933,7 @@ function drawSlideCharts(root){
     if(kind==="fin"){ if(c.fin) C.combo(el,{height:230,cats:c.fin.cats,fmt:v=>(v<0?MINUS:"")+nf(v,1),bars:[{key:"rev",label:"Revenue",values:c.fin.rev,color:"var(--viz-1)"},{key:"pat",label:"PAT",values:c.fin.pat,color:"var(--viz-3)"}],tip:()=>"",line:{values:c.fin.cats.map((_,j)=>c.fin.rev[j]?c.fin.pat[j]/c.fin.rev[j]*100:null),color:"var(--viz-2)",short:"PAT margin",fmt:v=>v==null?"":v.toFixed(1)+"%",tick:v=>v+"%",axis:"PAT margin %",tipFn:()=>""},yLabel:"₹ cr"});
       else C.columns(el,{height:230,items:[{label:"Revenue",value:c.m.r},{label:"EBITDA",value:c.m.e},{label:"Net profit",value:c.m.p}],fmt:v=>(v<0?MINUS:"")+nf(v,1),yLabel:"₹ cr",tip:()=>""}); }
     if(kind==="radar"&&CRIT.length) C.radar(el,{height:250,axes:radarAxes(),series:radarSeries(c)});
+    if(kind==="river"&&PUI) PUI.drawSlide(el);
   });
 }
 function fitSlides(root){
@@ -946,7 +969,11 @@ const Present={ i:0, n:0, slides:[],
   key(e){ const k=e.key; if(["ArrowRight","PageDown"," ","Enter"].includes(k)){ e.preventDefault(); this.go(this.i+1); } else if(["ArrowLeft","PageUp","Backspace"].includes(k)){ e.preventDefault(); this.go(this.i-1); } else if(k==="Home"){ e.preventDefault(); this.go(0); } else if(k==="End"){ e.preventDefault(); this.go(this.n-1); } else if(k==="Escape"){ e.preventDefault(); this.close(); } } };
 document.addEventListener("fullscreenchange",()=>{ if(!document.fullscreenElement&&!document.getElementById("present")?.hidden) Present.layout(); });
 
+PAGES.pipeline = (main, st, arg, same)=>{ if(!PUI){ main.innerHTML=`<div class="empty">Pipeline module missing.</div>`; return; } PUI.page(main, st, arg, same); };
+const PUI = window.PipelineUI ? window.PipelineUI({M,G,MET,C,esc,fmt,fmtPlain,href,go,route,withState,filterOnly,pill,icon,shortName,totalScore,toast,nf,PIPE,RM,addCompare,download,present:()=>Present.open()}) : null;
+
 // ---------- boot ----------
+PIPE.init();
 shell();
 addEventListener("hashchange", render);
 addEventListener("popstate", render);
@@ -954,5 +981,5 @@ let rz, rw=innerWidth; addEventListener("resize",()=>{ clearTimeout(rz); rz=setT
 render();
 if(route().st.pack){ buildPack(); document.body.classList.add("pack-preview"); document.documentElement.setAttribute("data-pack-ready","1"); }
 else if(route().st.pv){ Present.open(route().st.pv-1); }
-window.__APP = { render, route, filtered, sorted, fmt, fmtPlain, buildPack, M, PREV, PAGES, OV, SCR, SL, Present };
+window.__APP = { render, route, filtered, sorted, fmt, fmtPlain, buildPack, M, PREV, PAGES, OV, SCR, SL, Present, PIPE, PUI };
 })();

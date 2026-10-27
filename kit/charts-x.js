@@ -75,7 +75,7 @@ class Lab{
     let qs="";
     const inX=v=>v!=null&&v>=xd[0]&&v<=xd[1], inY=v=>v!=null&&v>=yd[0]&&v<=yd[1];
     if(inX(O.medianX)) qs+=`<line class="med" x1="${sx(O.medianX)}" x2="${sx(O.medianX)}" y1="${m.t}" y2="${H-m.b}"/>`;
-    if(inY(O.medianY)) qs+=`<line class="med" x1="${m.l}" x2="${W-m.r}" y1="${sy(O.medianY)}" y2="${sy(O.medianY)}"/><text class="medt" x="${W-m.r-4}" y="${sy(O.medianY)-5}" text-anchor="end">median</text>`;
+    if(inY(O.medianY)) qs+=`<line class="med" x1="${m.l}" x2="${W-m.r}" y1="${sy(O.medianY)}" y2="${sy(O.medianY)}"/><text class="medt" x="${W-m.r-4}" y="${sy(O.medianY)-5}" text-anchor="end">${esc(O.medianLabel||"median")}</text>`;
     if(O.quadrants&&O.quadLabels&&inX(O.medianX)&&inY(O.medianY)&&W>480){ const L=O.quadLabels;
       qs+=`<text class="quadt" x="${m.l+8}" y="${m.t+28}">${esc(L.tl)}</text><text class="quadt" x="${W-m.r-8}" y="${m.t+28}" text-anchor="end">${esc(L.tr)}</text><text class="quadt" x="${m.l+8}" y="${H-m.b-10}">${esc(L.bl)}</text><text class="quadt" x="${W-m.r-8}" y="${H-m.b-10}" text-anchor="end">${esc(L.br)}</text>`; }
     this.g.quad.innerHTML=qs;
@@ -405,11 +405,52 @@ function constellation(host, o){
 // ======================================================================================
 function flip(container, sel, key, mutate){
   if(RM()){ mutate(); return; }
-  const before=new Map(); container.querySelectorAll(sel).forEach(n=>before.set(n.getAttribute(key), n.getBoundingClientRect().top));
+  const before=new Map(); container.querySelectorAll(sel).forEach(n=>{ const r=n.getBoundingClientRect(); before.set(n.getAttribute(key), {x:r.left,y:r.top}); });
   mutate();
-  const moved=[]; container.querySelectorAll(sel).forEach(n=>{ const b=before.get(n.getAttribute(key)); if(b==null) return; const d=b-n.getBoundingClientRect().top; if(Math.abs(d)<1) return; n.style.transition="none"; n.style.transform=`translateY(${d}px)`; moved.push(n); });
+  const moved=[]; container.querySelectorAll(sel).forEach(n=>{ const b=before.get(n.getAttribute(key)); if(!b) return; const r=n.getBoundingClientRect(), dx=b.x-r.left, dy=b.y-r.top; if(Math.abs(dx)<1&&Math.abs(dy)<1) return; n.style.transition="none"; n.style.transform=`translate(${dx}px,${dy}px)`; moved.push(n); });
   if(moved.length) requestAnimationFrame(()=>requestAnimationFrame(()=>moved.forEach(n=>{ n.style.transition="transform var(--dur-3) var(--ease)"; n.style.transform=""; })));
 }
 
-Object.assign(C, { Lab, treemap, squarify, funnel, radar, swarm, parallel, isolate, Scoreboard, waterfall, HistSlider, constellation, flip, seqFill, divFill, scaleLegend, robust, linScale, logScale, bindTips });
+// ======================================================================================
+// River: the deal pipeline as a flow. Node height = companies that reached the stage; ribbons carry those moving on;
+// drop-outs (passed / on hold) fall into the lane below. Hover a stage to list companies; click to jump to it.
+// ======================================================================================
+function river(host, o){
+  const W=hostW(host,900), compact=!!o.compact, H=o.height||(compact?150:(W<600?250:300)), n=o.stages.length;
+  const m={l:compact?6:14, r:compact?6:14, t:compact?22:44, b:compact?20:(W<600?54:62)}, nodeW=compact?8:14, lane=compact?0:30;
+  const Hn=H-m.t-m.b, mid=m.t+Hn/2, r0=Math.max(1,o.stages[0].reach), k=Hn*(compact?.92:.88)/r0;
+  const xs=o.stages.map((s,i)=>m.l+i*(W-m.l-m.r-nodeW)/Math.max(1,n-1));
+  const hs=o.stages.map(s=>s.reach>0?Math.max(compact?4:6,s.reach*k):2), tops=hs.map(h=>mid-h/2);
+  let defs="", rib="", parts="", nodes="", labels="", exits="";
+  o.stages.forEach((s,i)=>{
+    const x=xs[i], h=hs[i], top=tops[i];
+    if(i<n-1){ const nx=o.stages[i+1], ow=s.reach>0?h*nx.reach/s.reach:0;
+      if(ow>0.5){ const x0=x+nodeW, x1=xs[i+1], y0=top, y0b=top+ow, y1=tops[i+1], y1b=tops[i+1]+hs[i+1], cx=(x0+x1)/2, gid=`rg${i}-${(Math.random()*1e6|0)}`;
+        defs+=`<linearGradient id="${gid}" x1="0" x2="1" y1="0" y2="0"><stop offset="0" style="stop-color:${s.color}"/><stop offset="1" style="stop-color:${nx.color}"/></linearGradient>`;
+        rib+=`<path class="rv-rib" data-s="${esc(s.key)}" d="M${x0} ${y0}C${cx} ${y0} ${cx} ${y1} ${x1} ${y1}L${x1} ${y1b}C${cx} ${y1b} ${cx} ${y0b} ${x0} ${y0b}Z" style="fill:url(#${gid})"/>`;
+        if(!compact&&ow>3){ const ya=y0+ow/2, yb=y1+hs[i+1]/2; parts+=`<path class="rv-flow" d="M${x0} ${ya}C${cx} ${ya} ${cx} ${yb} ${x1} ${yb}" style="stroke-width:${Math.max(1.2,Math.min(3,ow*.35)).toFixed(1)}px;animation-duration:${(2.6+i*.25).toFixed(2)}s"/>`; }
+        if(!compact&&s.reach>0&&W>=640){ labels+=`<text class="rv-pct" x="${cx}" y="${Math.min(y0,y1)-5}" text-anchor="middle">${Math.round(nx.reach/s.reach*100)}%</text>`; } } }
+    if(!compact&&s.exit>0&&s.reach>0){ const eh=Math.max(1.5,h*s.exit/s.reach), y0=top+h-eh, x0=x+nodeW/2, ly=H-m.b+lane*.55, x1=x+(i<n-1?(xs[i+1]-x)*.55:nodeW+18);
+      exits+=`<path class="rv-exit" d="M${x+nodeW} ${y0}C${x1} ${y0} ${x1} ${ly-eh} ${x1+12} ${ly-eh}L${x1+12} ${ly}C${x1} ${ly} ${x1-4} ${y0+eh} ${x+nodeW} ${y0+eh}Z"/>`; }
+    nodes+=`<g class="rv-node" tabindex="${compact?-1:0}" role="button" data-k="${esc(s.key)}" aria-label="${esc(s.label)}: ${s.reach} reached, ${s.count} here now" data-tip-html="${esc(o.tip?o.tip(s):s.label)}">
+      <rect class="rv-hit" x="${x-10}" y="${m.t-34}" width="${nodeW+20}" height="${Hn+48}"/>
+      <rect class="rv-bar" x="${x}" y="${top}" width="${nodeW}" height="${h}" rx="${compact?2:4}" style="fill:${s.color}"/>
+      ${s.count>0&&s.reach>0?`<rect class="rv-here" x="${x}" y="${top+h*(1-(s.count+s.exit)/s.reach)}" width="${nodeW}" height="${h*s.count/s.reach}" rx="2"/>`:""}</g>`;
+    if(compact){ labels+=`<text class="rv-l c" x="${x+nodeW/2}" y="${m.t-8}" text-anchor="${i===0?"start":i===n-1?"end":"middle"}">${esc(s.short)}</text><text class="rv-n c" x="${x+nodeW/2}" y="${H-4}" text-anchor="${i===0?"start":i===n-1?"end":"middle"}">${s.count}</text>`; }
+    else if(W<640){ const anchor=i===0?"start":i===n-1?"end":"middle", lx=i===0?x:i===n-1?x+nodeW:x+nodeW/2;
+      labels+=`<text class="rv-l c" x="${lx}" y="${i%2?m.t-8:m.t-26}" text-anchor="${anchor}">${esc(s.short)} <tspan class="rv-n c">${s.count}</tspan></text>`; }
+    else { const anchor=i===0?"start":i===n-1?"end":"middle", lx=i===0?x:i===n-1?x+nodeW:x+nodeW/2;
+      labels+=`<text class="rv-l" x="${lx}" y="${m.t-26}" text-anchor="${anchor}">${esc(s.short)}</text><text class="rv-n" x="${lx}" y="${m.t-8}" text-anchor="${anchor}">${s.count}<tspan class="rv-r"> here${s.reach!==s.count?` · ${s.reach} reached`:""}</tspan></text>`; }
+  });
+  if(!compact){ const ly=H-m.b+lane*.55, ex=o.exits||{};
+    exits=`<rect class="rv-lane" x="${m.l}" y="${ly}" width="${W-m.l-m.r}" height="10" rx="5"/>`+exits+`<text class="rv-lt" x="${W-m.r}" y="${ly+26}" text-anchor="end">Passed ${ex.passed||0} · On hold ${ex.hold||0}</text><text class="rv-lt" x="${m.l}" y="${ly+26}">Drop-outs by the stage they left</text>`; }
+  host.innerHTML=`<svg class="chart river ${compact?"compact":""}" viewBox="0 0 ${W} ${H}" role="img" aria-label="${esc(o.aria||"Pipeline flow")}"><defs>${defs}</defs><g class="rv-ribs">${rib}</g>${exits}<g class="rv-parts">${parts}</g>${nodes}${labels}</svg>`;
+  const svg=host.firstChild; bindTips(svg);
+  svg.querySelectorAll(".rv-node").forEach(g=>{ const k=g.dataset.k, act=()=>o.onNode&&o.onNode(k);
+    g.addEventListener("click",act); g.addEventListener("keydown",e=>{ if(e.key==="Enter"||e.key===" "){ e.preventDefault(); act(); } });
+    g.addEventListener("mouseenter",()=>{ svg.classList.add("hovering"); svg.querySelectorAll(`[data-s="${CSS.escape(k)}"]`).forEach(x=>x.classList.add("on")); });
+    g.addEventListener("mouseleave",()=>{ svg.classList.remove("hovering"); svg.querySelectorAll(".on").forEach(x=>x.classList.remove("on")); }); });
+  return svg;
+}
+Object.assign(C, { Lab, treemap, squarify, funnel, radar, swarm, parallel, isolate, Scoreboard, waterfall, HistSlider, constellation, flip, river, seqFill, divFill, scaleLegend, robust, linScale, logScale, bindTips });
 })();
