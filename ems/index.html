@@ -1,0 +1,610 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>EMS Target Screener</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans+Condensed:wght@500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<style>
+/* Same system as the FS screener: filter rail on the left, summary + chart + sortable table on the right; rail stacks above on phones */
+:root{
+  --bg:#F4F6F8; --panel:#FFFFFF; --ink:#16202B; --muted:#5B6773; --line:#DDE3EA; --soft:#EBF0F5;
+  --accent:#1D5C86; --accent-soft:#E1ECF4; --good:#1F7A4D; --warn:#A7650C; --bad:#B23A3A; --band:rgba(29,92,134,.07);
+  --c1:#2E6F9E; --c2:#C07A1E; --c3:#3D8F6A; --c4:#7F8792; --c5:#8B5BB5; --c6:#C2506B; --c7:#24939E; --c8:#8A7535;
+  --f-disp:"IBM Plex Sans Condensed","Arial Narrow",system-ui,sans-serif;
+  --f-body:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --f-num:"IBM Plex Mono",ui-monospace,"SFMono-Regular",Menlo,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0E1318; --panel:#151C23; --ink:#E4EAF0; --muted:#94A1AE; --line:#26313C; --soft:#1C252E;
+  --accent:#6FAEDB; --accent-soft:#1B2E3D; --good:#4FBF86; --warn:#E0A24A; --bad:#E57373; --band:rgba(111,174,219,.08);
+  --c1:#5B9BD0; --c2:#E09A3E; --c3:#5DB58C; --c4:#A2AAB4; --c5:#B08BDB; --c6:#E07892; --c7:#4CC0CA; --c8:#C4AA5E; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0E1318; --panel:#151C23; --ink:#E4EAF0; --muted:#94A1AE; --line:#26313C; --soft:#1C252E;
+  --accent:#6FAEDB; --accent-soft:#1B2E3D; --good:#4FBF86; --warn:#E0A24A; --bad:#E57373; --band:rgba(111,174,219,.08);
+  --c1:#5B9BD0; --c2:#E09A3E; --c3:#5DB58C; --c4:#A2AAB4; --c5:#B08BDB; --c6:#E07892; --c7:#4CC0CA; --c8:#C4AA5E; color-scheme:dark}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:14px;line-height:1.45}
+.wrap{max-width:1480px;margin:0 auto;padding-block:20px 48px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+header.top{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:12px 24px;margin-bottom:18px}
+h1{font-family:var(--f-disp);font-weight:600;font-size:1.75rem;letter-spacing:-.01em;margin:0;text-wrap:balance}
+.sub{color:var(--muted);margin:4px 0 0;max-width:70ch}
+.eyebrow{font-family:var(--f-num);font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.layout{display:grid;grid-template-columns:280px minmax(0,1fr);gap:20px;align-items:start}
+@media (max-width:900px){.layout{grid-template-columns:minmax(0,1fr)}}
+aside.rail{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:16px;display:flex;flex-direction:column;gap:18px;position:sticky;top:calc(env(safe-area-inset-top,0px) + 12px);max-height:calc(100vh - 24px);overflow:auto}
+@media (max-width:900px){aside.rail{position:static;max-height:none}}
+.grp{display:flex;flex-direction:column;gap:8px}
+.grp h3{margin:0;font-family:var(--f-num);font-weight:500;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+input[type=search],input[type=number],select{font:inherit;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:6px;padding:6px 8px;width:100%;min-width:0}
+input:focus-visible,select:focus-visible,button:focus-visible,.chip:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+.presets{display:flex;flex-wrap:wrap;gap:6px}
+button{font:inherit;cursor:pointer}
+.btn{border:1px solid var(--line);background:var(--panel);color:var(--ink);border-radius:6px;padding:6px 10px;font-size:13px}
+.btn:hover{border-color:var(--accent);color:var(--accent)}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--panel)}
+.btn.primary:hover{opacity:.9;color:var(--panel)}
+.linkbtn{background:none;border:0;padding:0;color:var(--accent);font-size:12px;text-align:left}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chip{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--line);border-radius:999px;padding:3px 9px 3px 7px;font-size:12px;background:var(--panel);color:var(--ink);cursor:pointer;user-select:none;text-align:left}
+.chip .dot{width:8px;height:8px;border-radius:50%;flex:none}
+.chip .ct{font-family:var(--f-num);color:var(--muted);font-size:11px}
+.chip[aria-pressed=true]{background:var(--accent-soft);border-color:var(--accent)}
+.range{display:grid;grid-template-columns:1fr auto 1fr;gap:6px;align-items:center}
+.range span{color:var(--muted);font-size:12px}
+.rlabel{display:flex;justify-content:space-between;font-size:13px}
+.rlabel em{font-style:normal;color:var(--muted);font-family:var(--f-num);font-size:11px}
+.tog{display:flex;align-items:center;gap:8px;font-size:13px;cursor:pointer}
+.tog input{accent-color:var(--accent);width:15px;height:15px}
+.seg{display:flex;border:1px solid var(--line);border-radius:6px;overflow:hidden}
+.seg button{flex:1;border:0;background:var(--panel);color:var(--ink);padding:5px 0;font-size:13px;border-right:1px solid var(--line)}
+.seg button:last-child{border-right:0}
+.seg button[aria-pressed=true]{background:var(--accent-soft);color:var(--accent);font-weight:600}
+main{display:flex;flex-direction:column;gap:16px;min-width:0}
+.kpis{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:1px;background:var(--line);border:1px solid var(--line);border-radius:8px;overflow:hidden}
+@media (max-width:1100px){.kpis{grid-template-columns:repeat(3,minmax(0,1fr))}}
+@media (max-width:520px){.kpis{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.kpi{background:var(--panel);padding:12px 14px}
+.kpi b{display:block;font-family:var(--f-num);font-weight:500;font-size:1.35rem;font-variant-numeric:tabular-nums;margin-top:2px}
+.kpi small{color:var(--muted);font-size:12px}
+.viz{display:grid;grid-template-columns:minmax(0,1.7fr) minmax(0,1fr);gap:16px}
+@media (max-width:1100px){.viz{grid-template-columns:minmax(0,1fr)}}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:14px 16px;min-width:0}
+.card-h{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px;margin-bottom:8px}
+.card-h h2{font-family:var(--f-disp);font-weight:600;font-size:1.05rem;margin:0}
+.axes{display:flex;gap:6px;align-items:center;font-size:12px;color:var(--muted)}
+.axes select{width:auto;padding:3px 6px;font-size:12px}
+#scatter{width:100%;height:auto;display:block}
+#scatter text{font-family:var(--f-num);font-size:10px;fill:var(--muted)}
+#scatter .grid{stroke:var(--line);stroke-width:1}
+#scatter .zero{stroke:var(--muted);stroke-width:1;stroke-dasharray:3 3}
+#scatter .dot{stroke:var(--panel);stroke-width:1.5;cursor:pointer;transition:r .12s}
+#scatter .dot.out{fill-opacity:.25;stroke-width:1.5}
+#scatter .dot.dim{opacity:.16}
+#scatter .dot.hl{stroke:var(--ink);stroke-width:2}
+.tip{position:fixed;pointer-events:none;background:var(--ink);color:var(--bg);font-size:12px;padding:6px 8px;border-radius:5px;z-index:20;max-width:280px;line-height:1.35}
+.tip[hidden]{display:none}
+.bars{display:flex;flex-direction:column;gap:8px}
+.bar{display:grid;grid-template-columns:minmax(0,1fr) 34px;gap:8px;align-items:center;font-size:12.5px}
+.bar .lab{display:flex;justify-content:space-between;gap:6px;margin-bottom:3px}
+.bar .lab span:first-child{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.bar .track{height:7px;background:var(--soft);border-radius:4px;overflow:hidden}
+.bar .fill{height:100%;border-radius:4px}
+.bar .n{font-family:var(--f-num);text-align:right;font-variant-numeric:tabular-nums}
+.note{color:var(--muted);font-size:12px;margin:10px 0 0}
+.tbl-card{padding:0}
+.tbl-card .card-h{padding:14px 16px 6px;margin:0}
+.tbl-wrap{overflow-x:auto}
+table{border-collapse:collapse;width:100%;min-width:1180px;font-size:13px}
+thead th{position:sticky;top:0;background:var(--panel);text-align:right;font-weight:500;color:var(--muted);font-size:11.5px;padding:8px 10px;border-bottom:1px solid var(--line);white-space:nowrap;cursor:pointer;user-select:none}
+thead th.l{text-align:left}
+thead th:hover{color:var(--ink)}
+thead th[aria-sort]{color:var(--accent)}
+thead th .arr{font-size:9px;margin-left:3px}
+tbody td{padding:9px 10px;border-bottom:1px solid var(--line);text-align:right;font-family:var(--f-num);font-variant-numeric:tabular-nums;white-space:nowrap;vertical-align:top}
+tbody td.l{text-align:left;font-family:var(--f-body);white-space:normal}
+tbody td.desc{color:var(--muted);font-size:12.5px;max-width:420px}
+tbody tr.row{cursor:pointer}
+tbody tr.row:hover td{background:var(--soft)}
+tbody tr.row.open td{background:var(--accent-soft)}
+tbody tr.row.fit td:nth-child(2){box-shadow:inset 3px 0 0 var(--accent)}
+.cname{font-weight:600;font-size:13.5px;display:block}
+.cmeta{display:flex;flex-wrap:wrap;gap:4px 8px;margin-top:3px;font-size:11.5px;color:var(--muted);align-items:center}
+.vt{display:inline-flex;align-items:center;gap:4px}
+.vt .dot{width:7px;height:7px;border-radius:50%;flex:none}
+.flag{font-family:var(--f-num);font-size:10px;letter-spacing:.04em;text-transform:uppercase;padding:1px 5px;border-radius:3px;border:1px solid currentColor}
+.flag.w{color:var(--warn)} .flag.i{color:var(--accent)} .flag.g{color:var(--good)}
+.pos{color:var(--good)} .neg{color:var(--bad)} .na{color:var(--muted)}
+.star{background:none;border:0;font-size:16px;color:var(--line);padding:0 2px;line-height:1}
+.star[aria-pressed=true]{color:var(--warn)}
+.star:hover{color:var(--warn)}
+.detail td{background:var(--bg);padding:14px 16px 18px;text-align:left;font-family:var(--f-body);white-space:normal}
+.dgrid{position:sticky;left:16px;max-width:calc(var(--tw,1000px) - 32px);display:grid;grid-template-columns:minmax(0,1.4fr) minmax(0,1fr) minmax(0,1fr);gap:18px}
+@media (max-width:900px){.dgrid{grid-template-columns:minmax(0,1fr)}}
+.dgrid h4{margin:0 0 6px;font-family:var(--f-num);font-weight:500;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.dgrid p{margin:0 0 8px;max-width:72ch}
+dl.kv{display:grid;grid-template-columns:auto 1fr;gap:4px 14px;margin:0;font-size:13px}
+dl.kv dt{color:var(--muted)} dl.kv dd{margin:0;text-align:right;font-family:var(--f-num);font-variant-numeric:tabular-nums}
+.peers{margin:0;padding-left:16px;font-size:12.5px;display:flex;flex-direction:column;gap:3px}
+.peers li span{font-family:var(--f-num);color:var(--muted);font-size:11.5px}
+.legend{display:flex;flex-wrap:wrap;gap:4px 12px;font-size:11.5px;color:var(--muted)}
+.legend span{display:inline-flex;align-items:center;gap:4px}
+.legend i{width:8px;height:8px;border-radius:2px;display:inline-block}
+.empty{padding:40px 16px;text-align:center;color:var(--muted)}
+.toast{position:fixed;bottom:calc(20px + env(safe-area-inset-bottom,0px));left:50%;transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:8px 14px;border-radius:6px;font-size:13px;z-index:30}
+.toast[hidden]{display:none}
+footer{color:var(--muted);font-size:12px;margin-top:20px;max-width:100ch}
+/* ---------- tabs + segment overview ---------- */
+.tabs{display:flex;border:1px solid var(--line);border-radius:6px;overflow:hidden;background:var(--panel)}
+.tabs button{border:0;background:var(--panel);color:var(--ink);padding:7px 14px;font-size:13px;border-right:1px solid var(--line)}
+.tabs button:last-child{border-right:0}
+.tabs button[aria-selected=true]{background:var(--accent-soft);color:var(--accent);font-weight:600}
+.dd{display:flex;flex-direction:column;gap:16px;min-width:0}
+.dd[hidden],.layout[hidden]{display:none}
+.pill{display:inline-block;font-size:11.5px;font-weight:600;padding:1px 7px;border-radius:999px;white-space:nowrap;border:1px solid transparent}
+.pill.g{color:var(--good);border-color:currentColor} .pill.w{color:var(--warn);border-color:currentColor} .pill.b{color:var(--bad);border-color:currentColor} .pill.n{color:var(--muted);border-color:var(--line)}
+.ddgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:16px}
+.ddgrid .card{display:flex;flex-direction:column;gap:8px}
+.ddgrid .card h3{margin:0;font-family:var(--f-disp);font-weight:600;font-size:1rem;display:flex;justify-content:space-between;gap:8px;align-items:baseline}
+.ddgrid .card p{margin:0;font-size:12.5px;color:var(--muted)}
+.ddgrid dl.kv{font-size:12.5px;margin-top:auto;padding-top:8px;border-top:1px solid var(--line)}
+.ddtbl{min-width:900px}
+.ddtbl td.l b{font-weight:600}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <div>
+      <div class="eyebrow">Greater Pacific Capital · EMS & industrial tech target outreach · FY25 · <span id="asof">Data from workbook</span></div>
+      <h1>EMS Target Screener</h1>
+      <p class="sub" id="sub">Companies from the Consol Target Outreach List, classified by segment. Filter by segment, size, profitability and evaluation status; click a row for the business description, financials and segment peers.</p>
+    </div>
+    <div class="presets">
+      <div class="tabs" role="tablist" aria-label="View">
+        <button type="button" role="tab" id="tabScreen" aria-selected="true" aria-controls="viewScreen">Screener</button>
+        <button type="button" role="tab" id="tabDD" aria-selected="false" aria-controls="viewDD">Segment overview</button>
+      </div>
+      <button class="btn" id="copyBtn" type="button">Copy filtered table</button>
+    </div>
+  </header>
+
+  <section class="dd" id="viewDD" role="tabpanel" aria-labelledby="tabDD" hidden></section>
+
+  <div class="layout" id="viewScreen" role="tabpanel" aria-labelledby="tabScreen">
+    <aside class="rail" aria-label="Filters">
+      <div class="grp">
+        <h3>Quick screens</h3>
+        <div class="presets">
+          <button class="btn primary" type="button" data-preset="profit" title="EBITDA and net profit both positive">Profitable</button>
+          <button class="btn" type="button" data-preset="scale">₹50 cr+ revenue</button>
+          <button class="btn" type="button" data-preset="fresh">Not yet evaluated</button>
+          <button class="btn" type="button" data-preset="reset">Reset</button>
+        </div>
+      </div>
+      <div class="grp">
+        <h3>Search</h3>
+        <input type="search" id="q" placeholder="Company, segment or description">
+      </div>
+      <div class="grp">
+        <h3>Segment</h3>
+        <div class="chips" id="vchips"></div>
+        <button type="button" class="linkbtn" id="moreSegs"></button>
+      </div>
+      <div class="grp">
+        <h3>Whether evaluated?</h3>
+        <div class="seg" id="evSeg">
+          <button type="button" data-v="all" aria-pressed="true">All</button>
+          <button type="button" data-v="yes" aria-pressed="false">Yes</button>
+          <button type="button" data-v="no" aria-pressed="false">No</button>
+        </div>
+      </div>
+      <div class="grp" id="ranges"></div>
+      <div class="grp">
+        <h3>Conditions</h3>
+        <label class="tog"><input type="checkbox" id="ebitdaPos"> EBITDA positive</label>
+        <label class="tog"><input type="checkbox" id="npPos"> Net profit positive</label>
+        <label class="tog"><input type="checkbox" id="starOnly"> Shortlisted only</label>
+      </div>
+    </aside>
+
+    <main>
+      <section class="kpis" id="kpis" aria-label="Summary of filtered companies"></section>
+
+      <section class="viz">
+        <div class="card">
+          <div class="card-h">
+            <h2>Positioning</h2>
+            <div class="axes">
+              <label for="ax">X</label><select id="ax"></select>
+              <label for="ay">Y</label><select id="ay"></select>
+            </div>
+          </div>
+          <svg id="scatter" viewBox="0 0 720 340" role="img" aria-label="Scatter plot of filtered companies"></svg>
+          <div class="legend" id="legend"></div>
+        </div>
+        <div class="card">
+          <div class="card-h"><h2>Segment mix</h2><span class="eyebrow" id="mixN"></span></div>
+          <div class="bars" id="bars"></div>
+          <p class="note" id="mixNote"></p>
+        </div>
+      </section>
+
+      <section class="card tbl-card">
+        <div class="card-h">
+          <h2 id="tblTitle">Companies</h2>
+          <span class="eyebrow">₹ crore · FY25 · blue edge = evaluated</span>
+        </div>
+        <div class="tbl-wrap">
+          <table>
+            <thead><tr id="thead"></tr></thead>
+            <tbody id="tbody"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <footer id="foot"></footer>
+    </main>
+  </div>
+</div>
+<div class="tip" id="tip" hidden></div>
+<div class="toast" id="toast" hidden></div>
+
+<script src="data.js"></script>
+<script>
+// Everything comes from data.js, which is regenerated from the "Consol Target Outreach List" sheet on each sync.
+const META = window.DATA_META || {};
+const RAW = window.RAW_BASE || [];
+
+// Segments ranked by company count; the eight largest get their own colour, the rest share grey.
+const PAL = ["--c1","--c2","--c3","--c5","--c6","--c7","--c8"];
+const segCount = {};
+RAW.forEach(r=>{ segCount[r.seg]=(segCount[r.seg]||0)+1; });
+const SEGS = Object.keys(segCount).sort((a,b)=>segCount[b]-segCount[a]||a.localeCompare(b));
+const SCOL = Object.fromEntries(SEGS.map((s,i)=>[s, i<PAL.length?`var(${PAL[i]})`:"var(--c4)"]));
+const TOPN = 10;
+
+const D = RAW.map((r,i)=>({...r, id:i,
+  em: r.r>0 && r.e!=null ? r.e/r.r*100 : null,
+  pm: r.r>0 && r.p!=null ? r.p/r.r*100 : null,
+  conv: r.e>0 && r.p!=null ? r.p/r.e*100 : null
+}));
+const median = a=>{ a=a.filter(x=>x!=null&&isFinite(x)).sort((x,y)=>x-y); if(!a.length) return null; const m=a.length>>1; return a.length%2?a[m]:(a[m-1]+a[m])/2; };
+const SEGSTAT = Object.fromEntries(SEGS.map(s=>{ const rows=D.filter(d=>d.seg===s); return [s,{n:rows.length, r:median(rows.map(d=>d.r)), em:median(rows.map(d=>d.em)), pm:median(rows.map(d=>d.pm))}]; }));
+
+const RANGES = [
+  {k:"r",  lab:"Revenue", unit:"₹ cr"},
+  {k:"e",  lab:"EBITDA", unit:"₹ cr"},
+  {k:"p",  lab:"Net profit", unit:"₹ cr"},
+  {k:"em", lab:"EBITDA margin", unit:"%"},
+  {k:"pm", lab:"Net margin", unit:"%"}
+];
+const AXES = {r:"Revenue FY25 (₹ cr)", e:"EBITDA FY25 (₹ cr)", p:"Net profit FY25 (₹ cr)", em:"EBITDA margin %", pm:"Net margin %"};
+
+// ---------- state ----------
+let S = {q:"",segs:new Set(),ev:"all",rng:{},ebitdaPos:false,npPos:false,starOnly:false,sort:{k:"r",dir:-1},open:null,ax:"r",ay:"em",allSegs:false};
+let stars = new Set();
+try{ stars = new Set(JSON.parse(localStorage.getItem("emsScreenStars")||"[]")); }catch(e){}
+function saveStars(){ try{ localStorage.setItem("emsScreenStars",JSON.stringify([...stars])); }catch(e){} }
+
+// ---------- formatting ----------
+const fmt = (v,d=1)=> v==null||isNaN(v) ? '<span class="na">–</span>' : (+v).toLocaleString("en-IN",{minimumFractionDigits:d,maximumFractionDigits:d});
+const fmtS = (v,d=1)=> v==null||isNaN(v) ? '<span class="na">–</span>' : `<span class="${v<0?'neg':''}">${fmt(v,d)}</span>`;
+const fmtM = v=> v==null||!isFinite(v) ? '<span class="na">–</span>' : `<span class="${v>=0?'pos':'neg'}">${Math.abs(v)>=1000?(v>0?'>999':'<−999'):v.toFixed(1)}%</span>`;
+const plain = (v,d=1)=> v==null||isNaN(v) ? "" : (+v).toFixed(d);
+const esc = s=> String(s??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const segTag = s=> `<span class="vt"><span class="dot" style="background:${SCOL[s]}"></span>${esc(s)}</span>`;
+
+// ---------- build filter UI ----------
+const vchips = document.getElementById("vchips"), moreSegs=document.getElementById("moreSegs");
+function drawChips(){
+  const list = S.allSegs ? SEGS : SEGS.filter((s,i)=>i<TOPN || S.segs.has(s));
+  vchips.innerHTML = list.map(s=>`<button type="button" class="chip" aria-pressed="${S.segs.has(s)}" data-s="${esc(s)}" title="${esc(s)}"><span class="dot" style="background:${SCOL[s]}"></span>${esc(s)}<span class="ct">${segCount[s]}</span></button>`).join("");
+  vchips.querySelectorAll(".chip").forEach(b=>b.onclick=()=>{ const s=b.dataset.s; S.segs.has(s)?S.segs.delete(s):S.segs.add(s); b.setAttribute("aria-pressed",S.segs.has(s)); render(); });
+  moreSegs.hidden = SEGS.length<=TOPN;
+  moreSegs.textContent = S.allSegs ? "Show fewer segments" : `Show all ${SEGS.length} segments`;
+}
+moreSegs.onclick=()=>{ S.allSegs=!S.allSegs; drawChips(); };
+drawChips();
+
+const rangesEl = document.getElementById("ranges");
+rangesEl.innerHTML = '<h3>Ranges</h3>' + RANGES.map(r=>{
+  const vals=D.map(d=>d[r.k]).filter(v=>v!=null&&isFinite(v));
+  const lo=Math.min(...vals), hi=Math.max(...vals);
+  const show = v=> r.unit==="%" ? (Math.abs(v)>=1000?(v>0?">999":"<−999"):fmt(v,0)) : fmt(v,0);
+  return `<div><div class="rlabel"><span>${r.lab}</span><em>${show(lo)} – ${show(hi)} ${r.unit}</em></div>
+  <div class="range"><input type="number" step="any" id="min_${r.k}" placeholder="min" aria-label="${r.lab} minimum"><span>to</span><input type="number" step="any" id="max_${r.k}" placeholder="max" aria-label="${r.lab} maximum"></div></div>`;
+}).join("");
+RANGES.forEach(r=>{["min","max"].forEach(side=>{
+  document.getElementById(`${side}_${r.k}`).addEventListener("input",e=>{
+    const v=e.target.value===""?null:+e.target.value;
+    S.rng[r.k]=S.rng[r.k]||{}; S.rng[r.k][side]=v; render();
+  });
+});});
+document.getElementById("q").addEventListener("input",e=>{S.q=e.target.value.trim().toLowerCase();render();});
+["ebitdaPos","npPos","starOnly"].forEach(id=>{
+  document.getElementById(id).addEventListener("change",e=>{ S[id]=e.target.checked; render(); });
+});
+function setEv(v){ S.ev=v; document.querySelectorAll("#evSeg button").forEach(x=>x.setAttribute("aria-pressed",x.dataset.v===v)); }
+document.querySelectorAll("#evSeg button").forEach(b=>b.onclick=()=>{ setEv(b.dataset.v); render(); });
+const ax=document.getElementById("ax"), ay=document.getElementById("ay");
+for(const [k,l] of Object.entries(AXES)){ ax.add(new Option(l,k)); ay.add(new Option(l,k)); }
+ax.value=S.ax; ay.value=S.ay;
+ax.onchange=()=>{S.ax=ax.value;drawScatter(current);};
+ay.onchange=()=>{S.ay=ay.value;drawScatter(current);};
+
+function setRange(k,min,max){ S.rng[k]={min,max}; document.getElementById("min_"+k).value=min??""; document.getElementById("max_"+k).value=max??""; }
+function setTog(id,val){ document.getElementById(id).checked=val; S[id]=val; }
+function resetAll(){
+  S.q=""; document.getElementById("q").value="";
+  S.segs.clear(); drawChips();
+  setEv("all");
+  RANGES.forEach(r=>setRange(r.k,null,null));
+  ["ebitdaPos","npPos","starOnly"].forEach(id=>setTog(id,false));
+  S.sort={k:"r",dir:-1};
+}
+document.querySelectorAll("[data-preset]").forEach(b=>b.onclick=()=>{
+  resetAll();
+  const p=b.dataset.preset;
+  if(p==="profit"){ setTog("ebitdaPos",true); setTog("npPos",true); S.sort={k:"em",dir:-1}; }
+  if(p==="scale"){ setRange("r",50,null); }
+  if(p==="fresh"){ setEv("no"); }
+  render();
+});
+
+// ---------- filtering ----------
+function filtered(){
+  return D.filter(d=>{
+    if(S.q){ const hay=(d.n+" "+d.seg+" "+(d.d||"")).toLowerCase(); if(!hay.includes(S.q)) return false; }
+    if(S.segs.size && !S.segs.has(d.seg)) return false;
+    if(S.ev==="yes" && !d.ev) return false;
+    if(S.ev==="no" && d.ev) return false;
+    for(const [k,r] of Object.entries(S.rng)){
+      if(!r) continue;
+      if(r.min!=null && (d[k]==null || d[k]<r.min)) return false;
+      if(r.max!=null && (d[k]==null || d[k]>r.max)) return false;
+    }
+    if(S.ebitdaPos && !(d.e>0)) return false;
+    if(S.npPos && !(d.p>0)) return false;
+    if(S.starOnly && !stars.has(d.n)) return false;
+    return true;
+  });
+}
+
+// ---------- KPIs ----------
+function drawKpis(rows){
+  const k=[
+    ["Companies",`${rows.length}<small> / ${D.length}</small>`, `${new Set(rows.map(d=>d.seg)).size} segments`],
+    ["Median revenue", rows.length?"₹"+fmt(median(rows.map(d=>d.r)),1):"–", `₹${fmt(rows.reduce((s,d)=>s+(d.r||0),0),0)} cr combined`],
+    ["Median EBITDA", rows.length?"₹"+fmt(median(rows.map(d=>d.e)),1):"–", "₹ crore"],
+    ["Median EBITDA margin", rows.length?fmtM(median(rows.map(d=>d.em))):"–", `net margin ${rows.length?fmtM(median(rows.map(d=>d.pm))):"–"}`],
+    ["Profitable", `${rows.filter(d=>d.p>0).length}`, `${rows.filter(d=>d.e!=null&&d.e<=0).length} with EBITDA ≤ 0`],
+    ["Evaluated", `${rows.filter(d=>d.ev).length}`, `${rows.filter(d=>!d.ev).length} not yet evaluated`]
+  ];
+  document.getElementById("kpis").innerHTML=k.map(([a,b,c])=>`<div class="kpi"><span class="eyebrow">${a}</span><b>${b}</b><small>${c}</small></div>`).join("");
+}
+
+// ---------- segment bars ----------
+function drawBars(rows){
+  const counts=SEGS.map(s=>({s,n:rows.filter(d=>d.seg===s).length})).filter(c=>c.n).sort((a,b)=>b.n-a.n);
+  const top=counts.slice(0,12), rest=counts.slice(12);
+  const max=Math.max(1,...counts.map(c=>c.n));
+  document.getElementById("mixN").textContent=`${rows.length} companies`;
+  document.getElementById("bars").innerHTML=top.map(c=>`<div class="bar" title="${esc(c.s)}"><div><div class="lab"><span>${esc(c.s)}</span><span class="na">${rows.length?Math.round(c.n/rows.length*100):0}%</span></div><div class="track"><div class="fill" style="width:${c.n/max*100}%;background:${SCOL[c.s]}"></div></div></div><span class="n">${c.n}</span></div>`).join("") || '<p class="note">No companies in view.</p>';
+  document.getElementById("mixNote").textContent = rest.length ? `Plus ${rest.length} smaller segments with ${rest.reduce((s,c)=>s+c.n,0)} companies. See Segment overview for all of them.` : "Each company sits in exactly one segment.";
+}
+
+// ---------- scatter ----------
+const svg=document.getElementById("scatter"), tip=document.getElementById("tip");
+function nice(lo,hi,n=5){
+  if(lo===hi){lo-=1;hi+=1;}
+  const span=hi-lo, step0=span/n, mag=Math.pow(10,Math.floor(Math.log10(step0)));
+  const step=[1,2,2.5,5,10].map(m=>m*mag).find(s=>span/s<=n)||10*mag;
+  const a=Math.floor(lo/step)*step, b=Math.ceil(hi/step)*step, t=[];
+  for(let v=a; v<=b+step/2; v+=step) t.push(+v.toFixed(6));
+  return {a,b,t};
+}
+// Margins on tiny revenue bases run to ±1000%; scale axes to the 3rd–97th percentile and pin outliers to the edge.
+function domain(vals){
+  const s=vals.slice().sort((x,y)=>x-y); if(!s.length) return [0,1];
+  const q=p=>s[Math.min(s.length-1,Math.max(0,Math.round(p*(s.length-1))))];
+  return s.length>20 ? [Math.min(0,q(.03)),q(.97)] : [Math.min(0,s[0]),s[s.length-1]];
+}
+function drawScatter(rows){
+  const W=720,H=340,m={l:52,r:16,t:14,b:38};
+  const ok=d=>d[S.ax]!=null&&d[S.ay]!=null&&isFinite(d[S.ax])&&isFinite(d[S.ay]);
+  const xs=rows.filter(ok);
+  const src = xs.length?xs:D.filter(ok);
+  const [xlo,xhi]=domain(src.map(d=>d[S.ax])), [ylo,yhi]=domain(src.map(d=>d[S.ay]));
+  const X=nice(xlo,xhi), Y=nice(ylo,yhi);
+  const clamp=(v,A)=>Math.max(A.a,Math.min(A.b,v));
+  const sx=v=>m.l+(clamp(v,X)-X.a)/(X.b-X.a)*(W-m.l-m.r), sy=v=>H-m.b-(clamp(v,Y)-Y.a)/(Y.b-Y.a)*(H-m.t-m.b);
+  let s="";
+  Y.t.forEach(v=>{ s+=`<line class="${v===0?'zero':'grid'}" x1="${m.l}" x2="${W-m.r}" y1="${sy(v)}" y2="${sy(v)}"/><text x="${m.l-6}" y="${sy(v)+3}" text-anchor="end">${v.toLocaleString("en-IN")}</text>`; });
+  X.t.forEach(v=>{ s+=`<text x="${sx(v)}" y="${H-m.b+15}" text-anchor="middle">${v.toLocaleString("en-IN")}</text>`; });
+  if(X.a<0&&X.b>0) s+=`<line class="zero" x1="${sx(0)}" x2="${sx(0)}" y1="${m.t}" y2="${H-m.b}"/>`;
+  s+=`<text x="${(m.l+W-m.r)/2}" y="${H-6}" text-anchor="middle">${esc(AXES[S.ax])}</text>`;
+  s+=`<text transform="translate(12 ${(m.t+H-m.b)/2}) rotate(-90)" text-anchor="middle">${esc(AXES[S.ay])}</text>`;
+  const ids=new Set(xs.map(d=>d.id));
+  D.filter(ok).sort((a,b)=>ids.has(a.id)-ids.has(b.id)).forEach(d=>{
+    const out = d[S.ax]<X.a||d[S.ax]>X.b||d[S.ay]<Y.a||d[S.ay]>Y.b;
+    const cls=["dot"]; if(!ids.has(d.id)) cls.push("dim"); if(out) cls.push("out"); if(S.open===d.id) cls.push("hl");
+    s+=`<circle class="${cls.join(" ")}" data-id="${d.id}" cx="${sx(d[S.ax]).toFixed(1)}" cy="${sy(d[S.ay]).toFixed(1)}" r="${S.open===d.id?7:5.5}" fill="${SCOL[d.seg]}"/>`;
+  });
+  svg.innerHTML=s;
+  svg.querySelectorAll(".dot").forEach(c=>{
+    const d=D[+c.dataset.id];
+    c.addEventListener("mousemove",e=>{ tip.hidden=false; tip.innerHTML=`<b>${esc(d.n)}</b><br>${esc(d.seg)}<br>${esc(AXES[S.ax])}: ${plain(d[S.ax])}<br>${esc(AXES[S.ay])}: ${plain(d[S.ay])}`; tip.style.left=Math.min(e.clientX+12,innerWidth-290)+"px"; tip.style.top=(e.clientY+12)+"px"; });
+    c.addEventListener("mouseleave",()=>tip.hidden=true);
+    c.addEventListener("click",()=>{ openRow(d.id,true); });
+  });
+  document.getElementById("legend").innerHTML=SEGS.slice(0,PAL.length).map(sg=>`<span><i style="background:${SCOL[sg]}"></i>${esc(sg)}</span>`).join("")+(SEGS.length>PAL.length?`<span><i style="background:var(--c4)"></i>Other segments</span>`:"")+`<span class="na">Faded = filtered out · hollow = off the chart, pinned to the edge</span>`;
+}
+
+// ---------- table ----------
+const COLS=[
+  {k:"star",lab:"",l:true,nosort:true},
+  {k:"n",lab:"Company",l:true},
+  {k:"d",lab:"Business description",l:true},
+  {k:"r",lab:"Revenue FY25"},
+  {k:"e",lab:"EBITDA FY25"},
+  {k:"em",lab:"EBITDA margin"},
+  {k:"p",lab:"Net profit FY25"},
+  {k:"pm",lab:"Net margin"},
+  {k:"ev",lab:"Evaluated?"}
+];
+const thead=document.getElementById("thead");
+function drawHead(){
+  thead.innerHTML=COLS.map(c=>{
+    const act=S.sort.k===c.k;
+    return `<th class="${c.l?'l':''}" data-k="${c.k}" ${act?`aria-sort="${S.sort.dir>0?'ascending':'descending'}"`:''} ${c.nosort?'':'tabindex="0"'}>${c.lab}${act?`<span class="arr">${S.sort.dir>0?'▲':'▼'}</span>`:''}</th>`;
+  }).join("");
+  thead.querySelectorAll("th").forEach(th=>{
+    const k=th.dataset.k; if(COLS.find(c=>c.k===k).nosort) return;
+    const go=()=>{ S.sort = S.sort.k===k?{k,dir:-S.sort.dir}:{k,dir:(k==="n"||k==="d")?1:-1}; render(); };
+    th.onclick=go; th.onkeydown=e=>{ if(e.key==="Enter"||e.key===" "){e.preventDefault();go();} };
+  });
+}
+function sortRows(rows){
+  const {k,dir}=S.sort;
+  return rows.slice().sort((a,b)=>{
+    const va=a[k], vb=b[k];
+    if(k==="n"||k==="d") return dir*String(va||"").localeCompare(String(vb||""));
+    if(k==="ev") return dir*((va?1:0)-(vb?1:0)) || (b.r||0)-(a.r||0);
+    if(va==null&&vb==null) return 0; if(va==null) return 1; if(vb==null) return -1;
+    return dir*(va-vb);
+  });
+}
+function detail(d){
+  const st=SEGSTAT[d.seg];
+  const peers=D.filter(x=>x.seg===d.seg).sort((a,b)=>(b.r||0)-(a.r||0));
+  const rank=peers.findIndex(x=>x.id===d.id)+1;
+  const others=peers.filter(x=>x.id!==d.id).slice(0,8);
+  return `<tr class="detail"><td colspan="${COLS.length}"><div class="dgrid">
+    <div>
+      <h4>Business description</h4>
+      <p>${esc(d.d||"No description recorded.")}</p>
+      <h4 style="margin-top:12px">Segment</h4>
+      <p>${segTag(d.seg)}</p>
+      <h4 style="margin-top:12px">Whether evaluated?</h4>
+      <p>${d.ev?'<span class="pill g">Yes</span>':'<span class="pill n">No</span>'}</p>
+    </div>
+    <div>
+      <h4>Financials FY25 (₹ cr)</h4>
+      <dl class="kv">
+        <dt>Revenue</dt><dd>${fmt(d.r)}</dd>
+        <dt>EBITDA</dt><dd>${fmtS(d.e,2)}</dd>
+        <dt>EBITDA margin</dt><dd>${fmtM(d.em)}</dd>
+        <dt>Net profit</dt><dd>${fmtS(d.p,2)}</dd>
+        <dt>Net margin</dt><dd>${fmtM(d.pm)}</dd>
+        <dt>Net profit ÷ EBITDA</dt><dd>${d.conv==null?'<span class="na">–</span>':fmt(d.conv,0)+"%"}</dd>
+      </dl>
+      <h4 style="margin-top:14px">vs segment median</h4>
+      <dl class="kv">
+        <dt>Revenue rank in segment</dt><dd>${rank} of ${st.n}</dd>
+        <dt>Segment median revenue</dt><dd>${fmt(st.r)}</dd>
+        <dt>Segment median EBITDA margin</dt><dd>${fmtM(st.em)}</dd>
+        <dt>Segment median net margin</dt><dd>${fmtM(st.pm)}</dd>
+      </dl>
+    </div>
+    <div>
+      <h4>Largest peers in segment</h4>
+      ${others.length?`<ul class="peers">${others.map(x=>`<li>${esc(x.n)} <span>₹${plain(x.r)} cr · ${x.em==null?'–':x.em.toFixed(0)+'%'}${x.ev?' · evaluated':''}</span></li>`).join("")}</ul>`:'<p class="na">Only company in this segment.</p>'}
+    </div>
+  </div></td></tr>`;
+}
+function drawTable(rows){
+  const tb=document.getElementById("tbody");
+  document.getElementById("tblTitle").textContent=`Companies (${rows.length})`;
+  if(!rows.length){ tb.innerHTML=`<tr><td colspan="${COLS.length}" class="empty">No companies match these filters. Loosen a range or press Reset.</td></tr>`; return; }
+  tb.innerHTML=sortRows(rows).map(d=>{
+    const flags=[d.ev?'<span class="flag i">Evaluated</span>':'', d.p!=null&&d.p<0?'<span class="flag w">Loss-making</span>':'', d.e!=null&&d.e<=0?'<span class="flag w">EBITDA ≤ 0</span>':''].join("");
+    return `<tr class="row ${d.ev?'fit':''} ${S.open===d.id?'open':''}" data-id="${d.id}">
+      <td class="l"><button class="star" type="button" aria-label="Shortlist ${esc(d.n)}" aria-pressed="${stars.has(d.n)}" data-star="${esc(d.n)}">★</button></td>
+      <td class="l" style="min-width:250px"><span class="cname">${esc(d.n)}</span><div class="cmeta">${segTag(d.seg)}${flags}</div></td>
+      <td class="l desc">${esc(d.d)}</td>
+      <td>${fmt(d.r)}</td><td>${fmtS(d.e,2)}</td><td>${fmtM(d.em)}</td><td>${fmtS(d.p,2)}</td><td>${fmtM(d.pm)}</td>
+      <td>${d.ev?'<span class="pill g">Yes</span>':'<span class="pill n">No</span>'}</td>
+    </tr>${S.open===d.id?detail(d):""}`;
+  }).join("");
+  tb.querySelectorAll("tr.row").forEach(tr=>tr.addEventListener("click",e=>{
+    if(e.target.closest("[data-star]")) return;
+    openRow(+tr.dataset.id,false);
+  }));
+  tb.querySelectorAll("[data-star]").forEach(b=>b.addEventListener("click",e=>{
+    e.stopPropagation(); const n=b.dataset.star;
+    stars.has(n)?stars.delete(n):stars.add(n); saveStars(); render();
+  }));
+}
+function openRow(id,scroll){
+  S.open = S.open===id && !scroll ? null : id; render();
+  if(scroll){ const tr=document.querySelector(`tr.row[data-id="${id}"]`); tr?.scrollIntoView({behavior:matchMedia("(prefers-reduced-motion: reduce)").matches?"auto":"smooth",block:"center"}); }
+}
+
+// ---------- copy ----------
+function toast(msg){ const t=document.getElementById("toast"); t.textContent=msg; t.hidden=false; clearTimeout(toast._t); toast._t=setTimeout(()=>t.hidden=true,2200); }
+document.getElementById("copyBtn").onclick=()=>{
+  const rows=sortRows(current);
+  const hdr=["Company","Segment","Business description","Revenue FY25 (INR cr)","EBITDA FY25 (INR cr)","EBITDA margin %","Net profit FY25 (INR cr)","Net margin %","Whether evaluated?","Shortlisted"];
+  const lines=[hdr.join("\t")].concat(rows.map(d=>[d.n,d.seg,(d.d||"").replace(/\s+/g," "),plain(d.r,2),plain(d.e,2),plain(d.em),plain(d.p,2),plain(d.pm),d.ev?"Yes":"No",stars.has(d.n)?"Yes":""].join("\t")));
+  const txt=lines.join("\n");
+  navigator.clipboard.writeText(txt).then(()=>toast(`Copied ${rows.length} rows. Paste into Excel or email.`)).catch(()=>{
+    const ta=document.createElement("textarea"); ta.value=txt; document.body.appendChild(ta); ta.select();
+    try{ document.execCommand("copy"); toast(`Copied ${rows.length} rows.`);}catch(e){ toast("Copy was blocked. Select the table manually."); }
+    ta.remove();
+  });
+};
+
+// ---------- segment overview ----------
+function drawDD(){
+  const el=document.getElementById("viewDD");
+  const evald=D.filter(d=>d.ev).sort((a,b)=>(b.r||0)-(a.r||0));
+  const segRows=SEGS.map(s=>{ const rows=D.filter(d=>d.seg===s); return {s, n:rows.length, ev:rows.filter(d=>d.ev).length, prof:rows.filter(d=>d.p>0).length,
+    tot:rows.reduce((a,d)=>a+(d.r||0),0), r:SEGSTAT[s].r, em:SEGSTAT[s].em, pm:SEGSTAT[s].pm, big:rows.slice().sort((a,b)=>(b.r||0)-(a.r||0))[0]}; });
+  el.innerHTML=`
+  <div class="card tbl-card">
+    <div class="card-h"><h2>Segments (${SEGS.length})</h2><span class="eyebrow">₹ crore · FY25 · medians · click a row to open it in the screener</span></div>
+    <div class="tbl-wrap"><table class="ddtbl"><thead><tr><th class="l">Segment</th><th>Companies</th><th>Evaluated</th><th>Profitable</th><th>Combined revenue</th><th>Median revenue</th><th>Median EBITDA margin</th><th>Median net margin</th><th class="l">Largest by revenue</th></tr></thead>
+    <tbody>${segRows.map(x=>`<tr class="row" data-seg="${esc(x.s)}"><td class="l">${segTag(x.s)}</td><td>${x.n}</td><td>${x.ev||'<span class="na">0</span>'}</td><td>${x.prof}</td><td>${fmt(x.tot,0)}</td><td>${fmt(x.r)}</td><td>${fmtM(x.em)}</td><td>${fmtM(x.pm)}</td><td class="l">${esc(x.big?.n)} <span class="na">₹${plain(x.big?.r)} cr</span></td></tr>`).join("")}</tbody></table></div>
+  </div>
+
+  <div>
+    <div class="card-h"><h2 style="font-family:var(--f-disp);font-weight:600;font-size:1.05rem;margin:0">Evaluated (${evald.length})</h2><span class="eyebrow">“Whether evaluated?” = Yes</span></div>
+    <div class="ddgrid">${evald.map(d=>`<div class="card"><h3>${esc(d.n)} <span class="pill g">Evaluated</span></h3><div class="cmeta">${segTag(d.seg)}</div><p>${esc(d.d)}</p>
+      <dl class="kv"><dt>Revenue</dt><dd>${fmt(d.r)}</dd><dt>EBITDA · margin</dt><dd>${fmtS(d.e,2)} · ${fmtM(d.em)}</dd><dt>Net profit · margin</dt><dd>${fmtS(d.p,2)} · ${fmtM(d.pm)}</dd></dl></div>`).join("") || '<p class="note">No companies are marked as evaluated yet.</p>'}</div>
+  </div>
+  <footer>Margins are medians across companies in the segment, so one tiny loss-maker does not swing them. Profitable = FY25 net profit above zero.</footer>`;
+  el.querySelectorAll("tr[data-seg]").forEach(tr=>tr.addEventListener("click",()=>{
+    resetAll(); S.segs.add(tr.dataset.seg); S.allSegs=true; drawChips(); showTab("screen"); render(); scrollTo({top:0});
+  }));
+}
+function showTab(t){
+  const dd=t==="dd";
+  document.getElementById("viewDD").hidden=!dd; document.getElementById("viewScreen").hidden=dd;
+  document.getElementById("tabDD").setAttribute("aria-selected",dd); document.getElementById("tabScreen").setAttribute("aria-selected",!dd);
+  document.getElementById("copyBtn").hidden=dd;
+  try{ history.replaceState(null,"",dd?"#segments":location.pathname+location.search); }catch(e){}
+  if(dd) drawDD();
+}
+document.getElementById("tabScreen").onclick=()=>showTab("screen");
+document.getElementById("tabDD").onclick=()=>showTab("dd");
+
+// ---------- render ----------
+let current=D;
+function render(){
+  current=filtered();
+  const tw=document.querySelector('.tbl-wrap'); if(tw) document.documentElement.style.setProperty('--tw',tw.clientWidth+'px');
+  drawKpis(current); drawBars(current); drawScatter(current); drawHead(); drawTable(current);
+}
+if(META.asof) document.getElementById("asof").textContent=`Synced ${META.asof}`;
+document.getElementById("sub").textContent=`${D.length} companies from the Consol Target Outreach List, classified into ${SEGS.length} segments. Filter by segment, size, profitability and evaluation status; click a row for the business description, financials and segment peers.`;
+document.getElementById("foot").textContent=`Source: “${META.sheet||"Consol Target Outreach List"}” sheet of ${META.file||"the EMS Target Outreach workbook"}${META.modified?` (saved ${META.modified})`:""}; no other sheet is read. Revenue, EBITDA and net profit are FY25, ₹ crore, as entered in the sheet. EBITDA margin = EBITDA ÷ revenue; net margin = net profit ÷ revenue. The page re-syncs from the workbook automatically, so new rows and edits appear after the next sync. Shortlist stars are saved in this browser only.`;
+render();
+if(location.hash==="#segments") showTab("dd");
+addEventListener('resize',()=>{const tw=document.querySelector('.tbl-wrap'); if(tw) document.documentElement.style.setProperty('--tw',tw.clientWidth+'px');});
+</script>
+</body>
+</html>
