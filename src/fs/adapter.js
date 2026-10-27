@@ -124,7 +124,7 @@ function build(src, opts){
     columnGroups:["Size","Valuation","Growth","Profitability","Ownership","Control"],
     views:[
       {key:"default",label:"Default",cols:["mc","r26","p26","pe","pb","rg","pg","pg3","sRev","sPat","roe","roe26","pm","pr","inst","nd","ctrl"]},
-      {key:"valuation",label:"Valuation",cols:["mc","pe","pb","p26","roe","roe26","roeChg","pm","pr","ctrl"]},
+      {key:"valuation",label:"Valuation",cols:["mc","p26","pe","pb","roe","roe26","roeChg","pm","pr","ctrl"]},
       {key:"growth",label:"Growth",cols:["mc","r24","r25","r26","rg","rg3","sRev","p24","p25","p26","pg","pg3","sPat"]},
       {key:"ownership",label:"Ownership & control",cols:["mc","pr","fii","dii","inst","rt","gd","cash","nd","ctrl"]},
       {key:"all",label:"All columns",cols:["mc","price","r24","r25","r26","p24","p25","p26","pe","pb","bv","rg","rg3","sRev","pg","pg3","sPat","roe","roe26","roeChg","ltmE","pm","pr","fii","dii","inst","rt","gd","cash","nd","ndmc","ctrl"]}
