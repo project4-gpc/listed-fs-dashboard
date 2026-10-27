@@ -1,4 +1,4 @@
-PALETTE REPORT  (generated 2026-10-27 16:43 from kit/tokens.css)
+PALETTE REPORT  (generated 2026-10-28 00:10 from kit/tokens.css)
 Backgrounds: bg #F6F7FA  surface #FFFFFF  surface-sunk #EDF0F5
 
 1. TEXT CONTRAST (WCAG AA: 4.5:1 body text, 3:1 large text)
@@ -37,6 +37,45 @@ Backgrounds: bg #F6F7FA  surface #FFFFFF  surface-sunk #EDF0F5
    warning          on warning-bg      4.81:1  AA
    info             on info-bg         5.45:1  AA
    text-on-brand    on brand-primary  19.80:1  AA
+
+
+1b. TEXT ON BRAND DARK SURFACES (hero bands, navy sidebar, presentation mode; AA 4.5:1)
+   on-dark           on hero-from   19.80:1  AA
+   on-dark           on hero-mid    16.00:1  AA
+   on-dark           on hero-to     11.01:1  AA
+   on-dark           on side-bg     19.80:1  AA
+   on-dark-muted     on hero-from   12.35:1  AA
+   on-dark-muted     on hero-mid     9.98:1  AA
+   on-dark-muted     on hero-to      6.87:1  AA
+   on-dark-muted     on side-bg     12.35:1  AA
+   on-dark-subtle    on hero-from    9.57:1  AA
+   on-dark-subtle    on hero-mid     7.73:1  AA
+   on-dark-subtle    on hero-to      5.32:1  AA
+   on-dark-subtle    on side-bg      9.57:1  AA
+   positive-on-dark  on hero-from   12.69:1  AA
+   positive-on-dark  on hero-mid    10.25:1  AA
+   positive-on-dark  on hero-to      7.06:1  AA
+   positive-on-dark  on side-bg     12.69:1  AA
+   negative-on-dark  on hero-from   10.47:1  AA
+   negative-on-dark  on hero-mid     8.45:1  AA
+   negative-on-dark  on hero-to      5.82:1  AA
+   negative-on-dark  on side-bg     10.47:1  AA
+   warning-on-dark   on hero-from   14.18:1  AA
+   warning-on-dark   on hero-mid    11.45:1  AA
+   warning-on-dark   on hero-to      7.89:1  AA
+   warning-on-dark   on side-bg     14.18:1  AA
+   side-text         on hero-from   12.35:1  AA
+   side-text         on hero-mid     9.98:1  AA
+   side-text         on hero-to      6.87:1  AA
+   side-text         on side-bg     12.35:1  AA
+   side-accent       on hero-from    8.19:1  AA
+   side-accent       on hero-mid     6.62:1  AA
+   side-accent       on hero-to      4.56:1  AA
+   side-accent       on side-bg      8.19:1  AA
+   brand-accent      on hero-from    8.19:1  AA
+   brand-accent      on hero-mid     6.62:1  AA
+   brand-accent      on hero-to      4.56:1  AA
+   brand-accent      on side-bg      8.19:1  AA
 
 2. DATA-VIZ MARK CONTRAST (WCAG 1.4.11 non-text: 3:1 against the chart background)
    viz-1    #002060  on surface   15.27:1  pass

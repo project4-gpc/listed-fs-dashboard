@@ -41,7 +41,7 @@ function robustDomain(vals, clip){ const s=vals.filter(v=>v!=null&&isFinite(v)).
 
 // ---------- shared interaction ----------
 const Tip = { el:null,
-  show(html, e){ if(!this.el){ this.el=document.getElementById("tip"); } if(!this.el) return; this.el.innerHTML=html; this.el.hidden=false; this.move(e); },
+  show(html, e, opt){ if(!this.el||!this.el.isConnected){ this.el=document.getElementById("tip"); } if(!this.el) return; this.el.classList.toggle("rich",!!(opt&&opt.rich)); this.el.innerHTML=html; this.el.hidden=false; this.move(e); },
   move(e){ if(!this.el||this.el.hidden||!e) return; const w=this.el.offsetWidth, h=this.el.offsetHeight; let x=e.clientX+14, y=e.clientY+14; if(x+w>innerWidth-8) x=e.clientX-w-14; if(y+h>innerHeight-8) y=e.clientY-h-14; this.el.style.left=x+"px"; this.el.style.top=y+"px"; },
   hide(){ if(this.el) this.el.hidden=true; } };
 function bindHover(svg){
@@ -205,5 +205,5 @@ function spark(values, opt={}){
   return `<svg class="spark" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" role="img" aria-label="${esc(opt.aria||"trend")}"><path d="${d}" fill="none" stroke="var(--viz-7)" stroke-width="1.5"/><circle cx="${sx(v.length-1)}" cy="${sy(last)}" r="2.5" fill="${col}"/></svg>`;
 }
 
-window.Charts = { scatter, combo, dotPlot, stackBar, scoreBars, columns, spark, legend, legendSwatch, shapePath, vizVar, shapeOf, SHAPES, niceTicks, quantile, Tip, esc };
+window.Charts = { scatter, combo, dotPlot, stackBar, scoreBars, columns, spark, legend, legendSwatch, shapePath, vizVar, shapeOf, SHAPES, niceTicks, quantile, Tip, esc, placeLabels, bindHover };
 })();

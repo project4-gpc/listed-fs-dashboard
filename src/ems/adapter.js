@@ -98,16 +98,21 @@ function build(src, opts){
       {key:"profitable",label:"Profitable",fmt:"int",value:cs=>cs.filter(c=>c.m.e>0&&c.m.p>0).length,ctx:()=>"EBITDA and net profit > 0",link:{t:["ebitdapos","nppos"]}},
       {key:"evaluated",label:"Evaluated",fmt:"int",value:cs=>cs.filter(c=>c.ev).length,ctx:cs=>`${cs.filter(c=>!c.ev).length} not yet evaluated`,link:{t:["ev"]}},
       {key:"short",label:"Shortlist",fmt:"int",value:cs=>cs.filter(c=>c.shortlisted).length,ctx:()=>"team list in the repo",link:{t:["short"]}},
-      {key:"rev",label:"Median revenue",fmt:"cr",value:cs=>K.median(cs.map(c=>c.m.r)),ctx:cs=>`₹${Math.round(cs.reduce((a,c)=>a+(c.m.r||0),0)).toLocaleString("en-IN")} cr combined`},
+      {key:"rev",label:"Median revenue",fmt:"cr",metric:"r",value:cs=>K.median(cs.map(c=>c.m.r)),ctx:cs=>`₹${Math.round(cs.reduce((a,c)=>a+(c.m.r||0),0)).toLocaleString("en-IN")} cr combined`},
       {key:"em",label:"Median EBITDA margin",fmt:"chg",value:cs=>K.median(cs.map(c=>c.m.em)),ctx:()=>"FY25"},
       {key:"pm",label:"Median net margin",fmt:"chg",value:cs=>K.median(cs.map(c=>c.m.pm)),ctx:()=>"FY25"}
     ],
-    scatter:{x:"r", y:"em", axes:["r","e","p","em","pm","conv"]},
+    treemap:{size:["r","e","p"], color:["em","pm","conv"]},
+    scatter:{x:"r", y:"em", size:"p", axes:["r","e","p","em","pm","conv"]},
     scoring:{criteria:[
       {key:"scale",label:"Scale",weight:30,explain:"Percentile of FY25 revenue across the list."},
       {key:"ebitda",label:"EBITDA margin",weight:30,explain:"Percentile of FY25 EBITDA margin."},
       {key:"net",label:"Net margin",weight:25,explain:"Percentile of FY25 net margin."},
       {key:"conv",label:"Earnings conversion",weight:15,explain:"Percentile of net profit ÷ EBITDA."}
+    ], presets:[
+      {key:"balanced",label:"Balanced",w:{scale:30,ebitda:30,net:25,conv:15}},
+      {key:"scale",label:"Scale first",w:{scale:50,ebitda:20,net:20,conv:10}},
+      {key:"margins",label:"Margins first",w:{scale:15,ebitda:40,net:35,conv:10}}
     ], unavailable:"Growth, leverage, controllability and valuation are not in this sheet (single year, unlisted), so they are not scored.",
     score(c, cs){ return {
       scale: K.pctRank(cs.map(x=>x.m.r), c.m.r) ?? 0,

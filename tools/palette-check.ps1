@@ -44,6 +44,10 @@ $texts = 'text','text-muted','text-subtle','link','positive','negative','warning
 foreach($t in $texts){ foreach($bg in 'surface','bg','surface-sunk'){ $c=Contrast $tok[$t] $tok[$bg]; $ok= if($c -ge 4.5){'AA'}elseif($c -ge 3){'AA-large only'}else{'FAIL'}; if($ok -eq 'FAIL' -or ($ok -ne 'AA' -and $t -notin 'text-subtle')){ $fail++ }; W ("   {0,-16} on {1,-13} {2,6:N2}:1  {3}" -f $t,$bg,$c,$ok) } }
 foreach($p in @(@('positive','positive-bg'),@('negative','negative-bg'),@('warning','warning-bg'),@('info','info-bg'),@('text-on-brand','brand-primary'))){ $c=Contrast $tok[$p[0]] $tok[$p[1]]; $ok= if($c -ge 4.5){'AA'}else{'FAIL'}; if($ok -eq 'FAIL'){$fail++}; W ("   {0,-16} on {1,-13} {2,6:N2}:1  {3}" -f $p[0],$p[1],$c,$ok) }
 W ""
+W ""
+W "1b. TEXT ON BRAND DARK SURFACES (hero bands, navy sidebar, presentation mode; AA 4.5:1)"
+foreach($t2 in 'on-dark','on-dark-muted','on-dark-subtle','positive-on-dark','negative-on-dark','warning-on-dark','side-text','side-accent','brand-accent'){ foreach($bg in 'hero-from','hero-mid','hero-to','side-bg'){ if(-not $tok[$t2] -or -not $tok[$bg]){ continue }; $c=Contrast $tok[$t2] $tok[$bg]; $ok= if($c -ge 4.5){'AA'}elseif($c -ge 3){'AA-large only'}else{'FAIL'}; if($ok -ne 'AA' -and $t2 -ne 'on-dark-subtle'){ $fail++ }; if($ok -eq 'FAIL'){ $fail++ }; W ("   {0,-17} on {1,-10} {2,6:N2}:1  {3}" -f $t2,$bg,$c,$ok) } }
+W ""
 W "2. DATA-VIZ MARK CONTRAST (WCAG 1.4.11 non-text: 3:1 against the chart background)"
 $viz = 1..8 | % { "viz-$_" }
 foreach($v in $viz + @('seq-4','seq-5','seq-6','seq-7','div-n3','div-n2','div-p2','div-p3')){ foreach($bg in 'surface','bg'){ $c=Contrast $tok[$v] $tok[$bg]; $ok= if($c -ge 3){'pass'}else{'below 3:1 (fill only with outline)'}; if($c -lt 3 -and $v -like 'viz-*'){ $fail++ }; W ("   {0,-8} {1}  on {2,-8} {3,6:N2}:1  {4}" -f $v,$tok[$v],$bg,$c,$ok) } }

@@ -9,9 +9,9 @@ function ReadText($p){ [IO.File]::ReadAllText((Join-Path $root $p), [Text.Encodi
 function B64($p){ [Convert]::ToBase64String([IO.File]::ReadAllBytes((Join-Path $root $p))) }
 
 $dashboards = @(
-  @{ key='fs';  out='index.html';     adapter='src/fs/adapter.js';  primary='market.js';
+  @{ key='fs';  short='Listed FS';   out='index.html';     adapter='src/fs/adapter.js';  primary='market.js';
      files=@('data.js','market.js','diligence.js','shortlist.js') },
-  @{ key='ems'; out='ems/index.html'; adapter='src/ems/adapter.js'; primary='ems/data.js';
+  @{ key='ems'; short='EMS targets'; out='ems/index.html'; adapter='src/ems/adapter.js'; primary='ems/data.js';
      files=@('ems/data.js','ems/shortlist.js') }
 )
 
@@ -24,13 +24,13 @@ function GitBytes([string[]]$argList){
 }
 function GitText([string[]]$a){ $b = GitBytes $a; if($null -eq $b){ return $null }; return $utf8.GetString($b).Trim() }
 
-$css = (ReadText 'kit/tokens.css') + "`n" + (ReadText 'kit/base.css')
+$css = (ReadText 'kit/tokens.css') + "`n" + (ReadText 'kit/base.css') + "`n" + (ReadText 'kit/ui.css')
 $fonts = "@font-face{font-family:'Heebo';font-style:normal;font-weight:100 900;font-display:swap;src:url(data:font/woff2;base64,$(B64 'kit/fonts/heebo-latin-var.woff2')) format('woff2')}`n" +
          "@font-face{font-family:'Martel';font-style:normal;font-weight:400;font-display:swap;src:url(data:font/woff2;base64,$(B64 'kit/fonts/martel-latin-400.woff2')) format('woff2')}`n" +
          "@font-face{font-family:'Martel';font-style:normal;font-weight:700;font-display:swap;src:url(data:font/woff2;base64,$(B64 'kit/fonts/martel-latin-700.woff2')) format('woff2')}"
 $logo = "data:image/png;base64," + (B64 'brand/logo.png')
 $favicon = "data:image/png;base64," + (B64 'brand/favicon.png')
-$kitJs = @('kit/charts.js','kit/model.js','kit/xlsx.js') | ForEach-Object { ReadText $_ }
+$kitJs = @('kit/charts.js','kit/charts-x.js','kit/model.js','kit/xlsx.js') | ForEach-Object { ReadText $_ }
 $appJs = ReadText 'kit/app.js'
 
 function Bundle($files, $getText){
@@ -54,6 +54,9 @@ foreach($d in $dashboards){
     }
   }
   $built = (Get-Date).ToUniversalTime().ToString('yyyy-MM-ddTHH:mm:ssZ')
+  # links to the other dashboards, relative to this output file
+  $depth = ($d.out.Split('/').Count - 1); $up = ('../' * $depth)
+  $sib = ($dashboards | ForEach-Object { '{"key":"' + $_.key + '","label":"' + $_.short + '","href":"' + $(if($_.key -eq $d.key){ (Split-Path $d.out -Leaf) } else { $up + $_.out }) + '"}' }) -join ','
   $html = @"
 <!doctype html>
 <html lang="en-IN">
@@ -70,7 +73,7 @@ $css</style>
 </head>
 <body>
 <noscript>This dashboard needs JavaScript.</noscript>
-<script>window.DATA={logo:"$logo",built:"$built",prevLabel:$prevLabel};
+<script>window.DATA={logo:"$logo",built:"$built",prevLabel:$prevLabel,key:"$($d.key)",siblings:[$sib]};
 window.DATA.cur=$cur;
 window.DATA.prev=$prev;</script>
 <script>$($kitJs -join "`n")</script>

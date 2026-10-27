@@ -162,7 +162,8 @@ function build(src, opts){
       {key:"pr",label:"Median promoter",fmt:"pct",value:cs=>K.median(cs.map(c=>c.m.pr)),ctx:cs=>`${cs.filter(c=>!(c.m.pr>0)).length} with no promoter`},
       {key:"netcash",label:"Net cash",fmt:"int",value:cs=>cs.filter(c=>c.m.nd!=null&&c.m.nd<=0).length,ctx:()=>"net debt ≤ 0",link:{t:["netcash"]}}
     ],
-    scatter:{x:"mc", y:"pb", axes:["mc","pe","pb","roe","roe26","r26","p26","pg","pg3","pm","pr","inst","nd","ctrl"]},
+    treemap:{size:["mc","r26","p26","ctrl"], color:["pb","pe","roe26","roe","pg3","rg3","pr"]},
+    scatter:{x:"mc", y:"pb", size:"p26", axes:["mc","pe","pb","roe","roe26","r26","p26","pg","pg3","pm","pr","inst","nd","ctrl"]},
     scoring:{criteria:[
       {key:"size",label:"Size fit",weight:20,explain:"1 inside the ₹40–130 cr band, falling linearly to 0 at ₹65 cr outside it."},
       {key:"growth",label:"Growth",weight:15,explain:"Percentile of FY24–FY26 PAT CAGR across the universe (n.m. scores 0)."},
@@ -170,6 +171,11 @@ function build(src, opts){
       {key:"leverage",label:"Leverage",weight:15,explain:"Percentile of net debt ÷ market cap, lower is better."},
       {key:"control",label:"Controllability",weight:15,explain:"Promoter stake ÷ 75%, capped at 1 (0 with no promoter)."},
       {key:"value",label:"Valuation",weight:15,explain:"Percentile of P/B, lower is better."}
+    ], presets:[
+      {key:"balanced",label:"Balanced",w:{size:20,growth:15,profit:20,leverage:15,control:15,value:15}},
+      {key:"value",label:"Value",w:{size:15,growth:10,profit:20,leverage:10,control:10,value:35}},
+      {key:"quality",label:"Quality",w:{size:10,growth:25,profit:35,leverage:15,control:5,value:10}},
+      {key:"control",label:"Control",w:{size:20,growth:5,profit:10,leverage:15,control:35,value:15}}
     ], score(c, cs){
       const mc=c.m.mc, d = mc==null?null: mc<MANDATE.lo? MANDATE.lo-mc : mc>MANDATE.hi? mc-MANDATE.hi : 0;
       return {

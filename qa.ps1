@@ -8,7 +8,7 @@ function Warn($m){ Write-Output "  WARN  $m"; $script:warn++ }
 function Txt($p){ [IO.File]::ReadAllText((Join-Path $root $p), [Text.Encoding]::UTF8) }
 
 Write-Output "1. Design tokens: no literal colours, font sizes or spacing outside kit/tokens.css"
-$src = @('kit/base.css','kit/app.js','kit/charts.js','kit/model.js','kit/xlsx.js') + (Get-ChildItem (Join-Path $root 'src') -Recurse -Filter *.js | ForEach-Object { $_.FullName.Substring($root.Length+1).Replace('\','/') })
+$src = @(Get-ChildItem (Join-Path $root 'kit') -File | Where-Object { $_.Extension -in '.css','.js' -and $_.Name -ne 'tokens.css' } | ForEach-Object { 'kit/' + $_.Name }) + (Get-ChildItem (Join-Path $root 'src') -Recurse -Filter *.js | ForEach-Object { $_.FullName.Substring($root.Length+1).Replace('\','/') })
 foreach($f in $src){
   $t = Txt $f; $lines = $t -split "`n"
   for($i=0; $i -lt $lines.Count; $i++){ $l = $lines[$i]

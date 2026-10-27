@@ -15,6 +15,14 @@ A new dashboard is one adapter file plus its data files; the shell, pages, chart
 7. **Ask before adding a dependency.** Current external tools: git, PowerShell (build/QA), Playwright in CI only.
 8. **Nothing confidential in commit messages, issue titles or other public metadata.** Bot commits say "Market refresh", "Rebuild dashboards", "EMS data sync", "Diligence update (issue #n)".
 
+## Interface (v2)
+- **Hero bands** in brand navy open the Overview, Screener, Shortlist and Company pages; KPI tiles sit on frosted glass with a micro-chart (share of universe or distribution with the company/median marked).
+- **Numbers are never animated** (no count-ups): every figure is final from the first frame so screenshots and prints are always right. Motion is limited to entrances, chart transitions and re-ranking, and is switched off for reduced motion.
+- **Positioning lab** (kit/charts-x.js `Lab`): drag to select, Shift-drag to pan, Ctrl/⌘+scroll to zoom, click to pin, double-click to open, arrow keys to move; axis, size, log scale, labels and quadrant choices, zoom, pin and selection all live in the URL. A selection is also a screener filter (`sel=`).
+- Other chart types: universe treemap, funnel, radar scorecard, peer beeswarm, parallel profiles, animated scoreboard, waterfall, histogram range slider, constellation (decorative, aria-hidden). See the dev chart gallery (`#/dev/gallery`).
+- **Presentation mode** (`P`, the Present button, or `?pv=1` in a link) shows the IC pack slides full screen with arrow-key navigation. The same slide builder prints the IC pack.
+- **Command palette** (Ctrl/⌘+K or `/`): companies and commands. `?` lists shortcuts.
+
 ## Brand
 Source: `brand/brand.json` (logo pixels, website, decks; no brand guide was supplied).
 Primary `#010039`, secondary `#002060`, accent `#97A8C1`; Martel for display headings, Heebo for body and every number (tabular digits).
