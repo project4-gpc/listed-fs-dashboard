@@ -1,0 +1,67 @@
+name: Build dashboards
+
+# Rebuilds the self-contained dashboards whenever a data file, the kit or an adapter changes
+# (e.g. the hourly EMS sync pushing ems/data.js, or a shortlist edit). Bot pushes made with
+# GITHUB_TOKEN do not trigger this workflow, so there is no rebuild loop.
+on:
+  push:
+    branches: [main]
+    paths:
+      - "kit/**"
+      - "src/**"
+      - "brand/**"
+      - "build.ps1"
+      - "qa.ps1"
+      - "tools/**"
+      - "data.js"
+      - "market.js"
+      - "diligence.js"
+      - "shortlist.js"
+      - "ems/data.js"
+      - "ems/shortlist.js"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: data-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Build and static QA
+        shell: pwsh
+        run: |
+          ./build.ps1
+          ./qa.ps1
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Browser QA and IC pack PDFs (Playwright)
+        run: |
+          npm install --no-save --no-audit --no-fund playwright@1.47.2
+          npx playwright install --with-deps chromium
+          node tools/pack.mjs
+      - name: Upload IC packs (kept 3 days)
+        uses: actions/upload-artifact@v4
+        with:
+          name: ic-packs
+          path: out/*.pdf
+          retention-days: 3
+      - name: Commit rebuilt dashboards
+        shell: bash
+        run: |
+          git config user.name "build-bot"
+          git config user.email "build-bot@users.noreply.github.com"
+          git add index.html ems/index.html docs/palette-report.txt
+          git diff --cached --quiet && echo "No changes" && exit 0
+          git commit -m "Rebuild dashboards"
+          git pull --rebase --autostash
+          git push

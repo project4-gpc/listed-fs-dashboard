@@ -1,0 +1,20 @@
+{
+  "_source": "No brand guide was supplied. Values are taken from the official logo file (pixel colour), greaterpacificcapital.com (computed styles) and the firm's PowerPoint decks (most-used colours). Replace with the brand guide's values when available.",
+  "name": "Greater Pacific Capital",
+  "logo": { "file": "logo.png", "origin": "Extracted unchanged from the firm's decks (identical file to the website header logo)", "width": 308, "height": 56, "minWidthPx": 112, "clearSpace": "Height of the logo's cap letters (~40% of logo height) on every side" },
+  "logoMark": null,
+  "colours": {
+    "primary":   { "hex": "#010039", "from": "Logo background and website ink navy" },
+    "secondary": { "hex": "#002060", "from": "Deck navy (titles and rules)" },
+    "accent":    { "hex": "#97A8C1", "from": "Website steel blue" },
+    "deckRed":   { "hex": "#C00000", "from": "Deck emphasis red" },
+    "deckLightBlue": { "hex": "#99CCFF", "from": "Deck light blue" },
+    "deckOrange": { "hex": "#F0895B", "from": "Deck orange" }
+  },
+  "fonts": {
+    "display": { "family": "Martel", "from": "Website headings", "licence": "SIL Open Font License (Google Fonts) — embeddable" },
+    "body":    { "family": "Heebo", "from": "Website body text", "licence": "SIL Open Font License (Google Fonts) — embeddable", "note": "Digits are tabular by default; used for every number" },
+    "decks":   { "family": "Arial", "note": "Used in decks; system fallback only" }
+  },
+  "themes": ["light"]
+}

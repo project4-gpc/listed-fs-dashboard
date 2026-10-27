@@ -10,7 +10,7 @@ permissions:
   contents: write
 
 concurrency:
-  group: market
+  group: data-${{ github.ref }}
   cancel-in-progress: false
 
 jobs:
@@ -19,16 +19,24 @@ jobs:
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0   # build.ps1 reads the previous snapshot from git history
       - uses: actions/setup-node@v4
         with:
           node-version: 20
       - name: Pull prices and financials from Screener
         run: node scripts/update-market.mjs
-      - name: Commit
+      - name: Commit data, rebuild, commit dashboards
+        shell: bash
         run: |
           git config user.name "market-bot"
           git config user.email "market-bot@users.noreply.github.com"
+          git diff --quiet market.js && echo "No changes" && exit 0
           git add market.js
-          git diff --cached --quiet && echo "No changes" && exit 0
           git commit -m "Market refresh $(TZ=Asia/Kolkata date +'%d %b %Y')"
+          # rebuild after committing so the Overview compares against the previous refresh
+          pwsh ./build.ps1
+          pwsh ./qa.ps1
+          git add index.html ems/index.html
+          git diff --cached --quiet || git commit -m "Rebuild dashboards"
           git push

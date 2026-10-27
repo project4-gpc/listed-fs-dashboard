@@ -1,0 +1,108 @@
+/* Greater Pacific dashboard kit — design tokens.
+   The ONLY file allowed to contain literal colours, font sizes or spacing values (enforced by qa.ps1).
+   Brand values: see brand/brand.json. Light theme only (no dark theme in the brand material). */
+:root{
+  color-scheme: light;
+
+  /* Brand */
+  --brand-primary:   #010039;  /* logo navy */
+  --brand-secondary: #002060;  /* deck navy */
+  --brand-accent:    #97A8C1;  /* website steel blue */
+  --brand-on-primary:#FFFFFF;
+
+  /* Neutral scale (cool grey, tuned toward the brand navy) */
+  --n-0:   #FFFFFF;
+  --n-50:  #F6F7FA;
+  --n-100: #EDF0F5;
+  --n-200: #DDE2EA;
+  --n-300: #C5CCD8;
+  --n-400: #9AA3B5;
+  --n-500: #737D92;
+  --n-600: #5A6377;
+  --n-700: #434B5E;
+  --n-800: #2A3044;
+  --n-900: #141832;
+
+  /* Surfaces, text, borders */
+  --bg:            var(--n-50);
+  --surface:       var(--n-0);
+  --surface-sunk:  var(--n-100);
+  --surface-raise: var(--n-0);
+  --surface-brand: var(--brand-primary);
+  --border:        var(--n-200);
+  --border-strong: var(--n-300);
+  --text:          var(--n-900);
+  --text-muted:    var(--n-600);
+  --text-subtle:   var(--n-500);
+  --text-on-brand: var(--brand-on-primary);
+  --link:          var(--brand-secondary);
+  --focus:         #2F6FD6;
+  --select-bg:     #E4EAF4;
+  --hover-bg:      var(--n-100);
+  --overlay:       rgba(1,0,57,.42);
+  --shadow-1: 0 1px 2px rgba(1,0,57,.06), 0 1px 1px rgba(1,0,57,.04);
+  --shadow-2: 0 6px 24px rgba(1,0,57,.14), 0 2px 6px rgba(1,0,57,.08);
+
+  /* Semantic — chosen to sit apart from the navy/steel brand hues */
+  --positive:    #17703F;
+  --positive-bg: #E5F2EA;
+  --negative:    #C00000;  /* the deck red, used only to mean "negative" */
+  --negative-bg: #FBE9E9;
+  --warning:     #9A5B00;
+  --warning-bg:  #FBF0DC;
+  --info:        #1D5FA8;
+  --info-bg:     #E3EDF8;
+
+  /* Data-viz: categorical (8), anchored on the brand navy; order = assignment order */
+  --viz-1: #002060;  /* brand navy */
+  --viz-2: #D9661F;  /* deck orange, deepened for contrast */
+  --viz-3: #3A86C8;  /* deck light blue, deepened */
+  --viz-4: #16735C;  /* teal */
+  --viz-5: #8A5CB8;  /* violet */
+  --viz-6: #6E5A00;  /* dark olive */
+  --viz-7: #8C847C;  /* warm grey */
+  --viz-8: #C2457A;  /* rose */
+  --viz-muted: var(--n-300);
+  --viz-band:  rgba(151,168,193,.20);
+  --viz-grid:  var(--n-200);
+  --viz-axis:  var(--n-400);
+  --viz-median: var(--n-600);
+
+  /* Sequential (navy, light → dark) */
+  --seq-1: #EEF2F8; --seq-2: #D3DDEC; --seq-3: #A9BCD9; --seq-4: #7A96C2;
+  --seq-5: #4D70A8; --seq-6: #284C8A; --seq-7: #002060;
+  /* Diverging (red ↔ neutral ↔ navy) */
+  --div-n3: #B2182B; --div-n2: #E07B6E; --div-n1: #F7CFC8; --div-0: #F2F2F2;
+  --div-p1: #C9D6EA; --div-p2: #6F8FC4; --div-p3: #002060;
+
+  /* Typography */
+  --font-display: "Martel", Georgia, "Times New Roman", serif;
+  --font-body: "Heebo", Arial, "Helvetica Neue", system-ui, sans-serif;
+  --font-num: "Heebo", Arial, system-ui, sans-serif;
+  --fs-display: 30px; --lh-display: 1.2;
+  --fs-h1: 22px;      --lh-h1: 1.25;
+  --fs-h2: 17px;      --lh-h2: 1.3;
+  --fs-h3: 14px;      --lh-h3: 1.35;
+  --fs-body: 14px;    --lh-body: 1.5;
+  --fs-small: 13px;
+  --fs-caption: 12px;
+  --fs-micro: 11px;
+  --fs-kpi: 24px;
+  --fw-regular: 400; --fw-medium: 500; --fw-semibold: 600; --fw-bold: 700;
+  --tracking-caps: .07em;
+
+  /* Spacing (4px base) */
+  --s-0: 0; --s-px: 1px; --s-half: 2px;
+  --s-1: 4px; --s-2: 8px; --s-3: 12px; --s-4: 16px; --s-5: 20px; --s-6: 24px; --s-8: 32px; --s-10: 40px; --s-12: 48px; --s-16: 64px;
+
+  /* Shape and layout */
+  --r-1: 3px; --r-2: 6px; --r-3: 10px; --r-pill: 999px;
+  --bw: 1px; --bw-2: 2px; --bw-3: 3px;
+  --sidebar-w: 232px; --sidebar-w-collapsed: 60px; --header-h: 60px;
+  --content-max: 1560px;
+  --logo-h: 28px;  /* logo rendered height; min width 112px per brand.json */
+  --icon: 16px; --dot: 8px; --spark-w: 64px; --spark-h: 18px;
+  --z-header: 30; --z-drawer: 40; --z-modal: 50; --z-tip: 60;
+  --dur-1: .12s; --dur-2: .35s; --dur-3: .6s;
+  --ease: cubic-bezier(.2,.7,.2,1);
+}

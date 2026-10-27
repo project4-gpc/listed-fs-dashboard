@@ -1,0 +1,131 @@
+PALETTE REPORT  (generated 2026-10-27 21:16 from kit/tokens.css)
+Backgrounds: bg #F6F7FA  surface #FFFFFF  surface-sunk #EDF0F5
+
+1. TEXT CONTRAST (WCAG AA: 4.5:1 body text, 3:1 large text)
+   text             on surface        17.41:1  AA
+   text             on bg             16.25:1  AA
+   text             on surface-sunk   15.24:1  AA
+   text-muted       on surface         6.02:1  AA
+   text-muted       on bg              5.62:1  AA
+   text-muted       on surface-sunk    5.27:1  AA
+   text-subtle      on surface         4.14:1  AA-large only
+   text-subtle      on bg              3.86:1  AA-large only
+   text-subtle      on surface-sunk    3.62:1  AA-large only
+   link             on surface        15.27:1  AA
+   link             on bg             14.25:1  AA
+   link             on surface-sunk   13.36:1  AA
+   positive         on surface         6.13:1  AA
+   positive         on bg              5.72:1  AA
+   positive         on surface-sunk    5.37:1  AA
+   negative         on surface         6.48:1  AA
+   negative         on bg              6.05:1  AA
+   negative         on surface-sunk    5.67:1  AA
+   warning          on surface         5.43:1  AA
+   warning          on bg              5.06:1  AA
+   warning          on surface-sunk    4.75:1  AA
+   info             on surface         6.45:1  AA
+   info             on bg              6.02:1  AA
+   info             on surface-sunk    5.65:1  AA
+   brand-primary    on surface        19.80:1  AA
+   brand-primary    on bg             18.49:1  AA
+   brand-primary    on surface-sunk   17.34:1  AA
+   brand-secondary  on surface        15.27:1  AA
+   brand-secondary  on bg             14.25:1  AA
+   brand-secondary  on surface-sunk   13.36:1  AA
+   positive         on positive-bg     5.32:1  AA
+   negative         on negative-bg     5.53:1  AA
+   warning          on warning-bg      4.81:1  AA
+   info             on info-bg         5.45:1  AA
+   text-on-brand    on brand-primary  19.80:1  AA
+
+2. DATA-VIZ MARK CONTRAST (WCAG 1.4.11 non-text: 3:1 against the chart background)
+   viz-1    #002060  on surface   15.27:1  pass
+   viz-1    #002060  on bg        14.25:1  pass
+   viz-2    #D9661F  on surface    3.58:1  pass
+   viz-2    #D9661F  on bg         3.34:1  pass
+   viz-3    #3A86C8  on surface    3.87:1  pass
+   viz-3    #3A86C8  on bg         3.61:1  pass
+   viz-4    #16735C  on surface    5.77:1  pass
+   viz-4    #16735C  on bg         5.38:1  pass
+   viz-5    #8A5CB8  on surface    4.88:1  pass
+   viz-5    #8A5CB8  on bg         4.56:1  pass
+   viz-6    #6E5A00  on surface    6.72:1  pass
+   viz-6    #6E5A00  on bg         6.27:1  pass
+   viz-7    #8C847C  on surface    3.68:1  pass
+   viz-7    #8C847C  on bg         3.44:1  pass
+   viz-8    #C2457A  on surface    4.74:1  pass
+   viz-8    #C2457A  on bg         4.43:1  pass
+   seq-4    #7A96C2  on surface    3.01:1  pass
+   seq-4    #7A96C2  on bg         2.81:1  below 3:1 (fill only with outline)
+   seq-5    #4D70A8  on surface    5.00:1  pass
+   seq-5    #4D70A8  on bg         4.67:1  pass
+   seq-6    #284C8A  on surface    8.43:1  pass
+   seq-6    #284C8A  on bg         7.87:1  pass
+   seq-7    #002060  on surface   15.27:1  pass
+   seq-7    #002060  on bg        14.25:1  pass
+   div-n3   #B2182B  on surface    6.87:1  pass
+   div-n3   #B2182B  on bg         6.41:1  pass
+   div-n2   #E07B6E  on surface    2.91:1  below 3:1 (fill only with outline)
+   div-n2   #E07B6E  on bg         2.71:1  below 3:1 (fill only with outline)
+   div-p2   #6F8FC4  on surface    3.28:1  pass
+   div-p2   #6F8FC4  on bg         3.06:1  pass
+   div-p3   #002060  on surface   15.27:1  pass
+   div-p3   #002060  on bg        14.25:1  pass
+   (seq-1..3 and div-n1/0/p1 are light fills for heat shading behind text; text on them is checked below)
+   text on seq-1    15.49:1  AA
+   text on seq-2    12.70:1  AA
+   text on seq-3     9.02:1  AA
+   text on div-n1   12.20:1  AA
+   text on div-0    15.55:1  AA
+   text on div-p1   11.84:1  AA
+
+3. COLOUR-BLIND DISTINGUISHABILITY, categorical pairs (CIEDE2000 after Machado 2009 simulation, severity 1.0)
+   >= 20 clearly distinct | 10-20 distinct | 6-10 close: rely on the shape cue | < 6 confusable: shape cue mandatory
+   pair           normal   protan   deutan   tritan
+   1-2              56.4     57.3     67.3     56.6
+   1-3              35.2     33.6     30.9     34.2
+   1-4              41.4     37.9     32.9     24.2
+   1-5              27.8     24.1     26.8     37.4
+   1-6              54.0     51.0     54.5     38.8
+   1-7              43.4     41.4     44.7     39.3
+   1-8              38.3     21.2     39.4     50.9
+   2-3              47.7     50.2     54.3     68.5
+   2-4              50.5     18.5     29.9     58.6
+   2-5              45.4     52.3     53.9     26.1
+   2-6              29.8     11.9     20.7     24.5
+   2-7              24.5     21.3     22.1     24.0
+   2-8              34.0     38.2     24.8      9.2
+   3-4              33.0     32.9     27.8     14.2
+   3-5              26.2     10.0      4.2     41.2
+   3-6              55.0     51.4     51.4     42.2
+   3-7              26.5     26.6     29.1     40.2
+   3-8              43.1     18.2     25.7     66.4
+   4-5              39.6     32.7     25.7     38.5
+   4-6              29.3     17.4     20.4     39.6
+   4-7              27.8     10.7     14.4     33.1
+   4-8              61.6     20.2     10.0     58.2
+   5-6              56.0     50.9     49.5     15.8
+   5-7              30.7     29.5     29.1     12.6
+   5-8              20.0     13.4     25.1     22.2
+   6-7              25.2     25.5     24.2     19.4
+   6-8              49.1     36.0     23.4     19.5
+   7-8              27.9     20.6      4.6     24.0
+
+   minimum normal   20.0  (viz-5/viz-8)
+   minimum protan   10.0  (viz-3/viz-5)
+   minimum deutan    4.2  (viz-3/viz-5)
+   minimum tritan    9.2  (viz-2/viz-8)
+
+   Pairs under 10 (charts must add the shape cue - every series also gets its own marker shape):
+     viz-2/viz-8 tritan 9.2
+     viz-3/viz-5 protan 10.0
+     viz-3/viz-5 deutan 4.2
+     viz-4/viz-8 deutan 10.0
+     viz-7/viz-8 deutan 4.6
+
+4. SEQUENTIAL / DIVERGING monotonic lightness check
+   seq-1 > seq-2 > seq-3 > seq-4 > seq-5 > seq-6 > seq-7: L* = 95 / 88 / 76 / 62 / 47 / 33 / 15  ok (steps >= 4 L*)
+   div-n3 > div-n2 > div-n1 > div-0: L* = 38 / 63 / 86 / 95  ok (steps >= 4 L*)
+   div-0 > div-p1 > div-p2 > div-p3: L* = 95 / 85 / 59 / 15  ok (steps >= 4 L*)
+
+RESULT: all hard checks pass
