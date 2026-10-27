@@ -63,6 +63,17 @@
       goto("#/pipeline");
       if(document.querySelectorAll(".pl-col").length<8) fail("pipeline","board columns missing");
       if(document.querySelectorAll("#plRiver .rv-node").length!==7) fail("pipeline","river stages missing");
+      // fresh pipeline (nothing in play, no next steps): path ahead in the river, sample link, and a start-here list that moves a company on
+      if(!M.companies.some(x=>{ const r=P.get(x); return r.next||U.INPLAY.includes(r.stage); })){
+        if(!document.querySelector("#plRiver .rv-ghost")) fail("pipeline","river has no path ahead for unreached stages");
+        if(!document.querySelector('#plHero a[href*="pipeline-sample"]')) fail("pipeline","sample preview link missing from the empty pipeline");
+        const sb=document.querySelector("#plAgenda [data-start]");
+        if(!sb){ if(M.companies.some(x=>["short","screened"].includes(P.stageOf(x)))) fail("pipeline","start-here list missing"); }
+        else { const sc=M.companies.find(x=>x.id===sb.dataset.start), i0=P.stageIndex(sc); sb.click();
+          if(P.stageIndex(sc)!==i0+1) fail("pipeline","start-here did not move the company on");
+          const sd=document.querySelector(".drawer"); if(!sd||sd.hidden) fail("pipeline","start-here did not open the deal card");
+          U.closeDrawer(); goto("#/pipeline");
+          if(U.INPLAY.includes(P.stageOf(sc))&&!document.querySelector('#plAgenda [data-focus="next"]')) fail("pipeline","a deal in play without a next step is not flagged in the agenda"); } }
       const c=M.companies.find(x=>P.stageOf(x)==="screened")||M.companies.find(x=>P.stageOf(x)==="long");
       P.update(c,{stage:"outreach"}); goto("#/pipeline");
       if(!document.querySelector(`.pl-col[data-stage="outreach"] .pc[data-id="${CSS.escape(c.id)}"]`)) fail("pipeline","moved card is not in the Outreach column");

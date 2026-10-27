@@ -291,8 +291,8 @@ function bindChips(root, st, page, arg){ const items=chipItems(st);
 // ---------- router ----------
 const PAGES = {};
 let lastKey="";
-function syncNav(){ const {page,st}=route();
-  document.querySelectorAll("[data-nav]").forEach(a=>{ const k=a.dataset.nav; a.href = k==="dev"?"#/dev/gallery":href(k,"",withState(filterOnly(st),{c:st.c,w:st.w})); if(k===page||(page==="company"&&k==="screener")) a.setAttribute("aria-current","page"); else a.removeAttribute("aria-current"); });
+function syncNav(){ const {page,arg,st}=route(), cur=page==="company"?"screener":page==="dev"&&arg==="pipeline-sample"?"pipeline":page;
+  document.querySelectorAll("[data-nav]").forEach(a=>{ const k=a.dataset.nav; a.href = k==="dev"?"#/dev/gallery":href(k,"",withState(filterOnly(st),{c:st.c,w:st.w})); if(k===cur) a.setAttribute("aria-current","page"); else a.removeAttribute("aria-current"); });
   const sl=document.getElementById("slCount"); if(sl) sl.textContent=M.companies.filter(c=>c.shortlisted).length||"";
   const cc=document.getElementById("cmpCount"); if(cc) cc.textContent=(st.c&&st.c.length)||""; }
 function render(){

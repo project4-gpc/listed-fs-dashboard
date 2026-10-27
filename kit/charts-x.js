@@ -434,7 +434,7 @@ function river(host, o){
       exits+=`<path class="rv-exit" d="M${x+nodeW} ${y0}C${x1} ${y0} ${x1} ${ly-eh} ${x1+12} ${ly-eh}L${x1+12} ${ly}C${x1} ${ly} ${x1-4} ${y0+eh} ${x+nodeW} ${y0+eh}Z"/>`; }
     nodes+=`<g class="rv-node" tabindex="${compact?-1:0}" role="button" data-k="${esc(s.key)}" aria-label="${esc(s.label)}: ${s.reach} reached, ${s.count} here now" data-tip-html="${esc(o.tip?o.tip(s):s.label)}">
       <rect class="rv-hit" x="${x-10}" y="${m.t-34}" width="${nodeW+20}" height="${Hn+48}"/>
-      <rect class="rv-bar" x="${x}" y="${top}" width="${nodeW}" height="${h}" rx="${compact?2:4}" style="fill:${s.color}"/>
+      ${s.reach>0?`<rect class="rv-bar" x="${x}" y="${top}" width="${nodeW}" height="${h}" rx="${compact?2:4}" style="fill:${s.color}"/>`:`<circle class="rv-ghost-n" cx="${x+nodeW/2}" cy="${mid}" r="${compact?3:6}"/>`}
       ${s.count>0&&s.reach>0?`<rect class="rv-here" x="${x}" y="${top+h*(1-(s.count+s.exit)/s.reach)}" width="${nodeW}" height="${h*s.count/s.reach}" rx="2"/>`:""}</g>`;
     if(compact){ labels+=`<text class="rv-l c" x="${x+nodeW/2}" y="${m.t-8}" text-anchor="${i===0?"start":i===n-1?"end":"middle"}">${esc(s.short)}</text><text class="rv-n c" x="${x+nodeW/2}" y="${H-4}" text-anchor="${i===0?"start":i===n-1?"end":"middle"}">${s.count}</text>`; }
     else if(W<640){ const anchor=i===0?"start":i===n-1?"end":"middle", lx=i===0?x:i===n-1?x+nodeW:x+nodeW/2;
@@ -444,7 +444,11 @@ function river(host, o){
   });
   if(!compact){ const ly=H-m.b+lane*.55, ex=o.exits||{};
     exits=`<rect class="rv-lane" x="${m.l}" y="${ly}" width="${W-m.l-m.r}" height="10" rx="5"/>`+exits+`<text class="rv-lt" x="${W-m.r}" y="${ly+26}" text-anchor="end">Passed ${ex.passed||0} · On hold ${ex.hold||0}</text><text class="rv-lt" x="${m.l}" y="${ly+26}">Drop-outs by the stage they left</text>`; }
-  host.innerHTML=`<svg class="chart river ${compact?"compact":""}" viewBox="0 0 ${W} ${H}" role="img" aria-label="${esc(o.aria||"Pipeline flow")}"><defs>${defs}</defs><g class="rv-ribs">${rib}</g>${exits}<g class="rv-parts">${parts}</g>${nodes}${labels}</svg>`;
+  // stages no company has reached yet: a dotted path ahead with hollow stations, so the flow still reads end to end
+  const last=o.stages.reduce((a,s,i)=>s.reach>0?i:a,-1); let ghost="";
+  if(last>=0&&last<n-1){ ghost=`<path class="rv-ghost" d="M${xs[last]+nodeW} ${mid}L${xs[n-1]+nodeW/2} ${mid}"/>`;
+    if(!compact&&n-1-last>=2) ghost+=`<text class="rv-ghost-t" x="${(xs[last+1]+xs[n-1])/2+nodeW/2}" y="${mid+(W<640?18:24)}" text-anchor="middle">Not reached yet</text>`; }
+  host.innerHTML=`<svg class="chart river ${compact?"compact":""}" viewBox="0 0 ${W} ${H}" role="img" aria-label="${esc(o.aria||"Pipeline flow")}"><defs>${defs}</defs><g class="rv-ribs">${rib}</g>${exits}<g class="rv-parts">${parts}</g>${ghost}${nodes}${labels}</svg>`;
   const svg=host.firstChild; bindTips(svg);
   svg.querySelectorAll(".rv-node").forEach(g=>{ const k=g.dataset.k, act=()=>o.onNode&&o.onNode(k);
     g.addEventListener("click",act); g.addEventListener("keydown",e=>{ if(e.key==="Enter"||e.key===" "){ e.preventDefault(); act(); } });

@@ -68,7 +68,7 @@ function page(main, st, arg, same, ctx){
     <p class="caption pl-hint">Drag a card to another stage · Shift + ← / → on a focused card moves it · ⋯ for more · Enter opens details</p>
   </section>
   <div class="grid g-main" style="margin-top:var(--s-4)">
-    <section class="card"><div class="card-h"><div><h2 id="plAgT">Next actions</h2><div class="sub">Next steps by due date · click to open the deal</div></div></div><div id="plAgenda"></div></section>
+    <section class="card"><div class="card-h"><div><h2 id="plAgT">Next actions</h2><div class="sub" id="plAgS">Next steps by due date · click to open the deal</div></div></div><div id="plAgenda"></div></section>
     <div class="stack">
       <section class="card"><div class="card-h"><div><h2>Stalled but attractive</h2><div class="sub">Days in current stage vs weighted score (0–100) · bubble = ${esc(sizeKey?MET[sizeKey].label:"size")} (₹ cr) · top-right needs a push</div></div></div><div id="plStall"></div></section>
       <section class="card"><div class="card-h"><div><h2>Team workload</h2><div class="sub">Active deals per owner, by stage · count</div></div></div><div id="plTeam"></div></section>
@@ -98,7 +98,7 @@ function paintHero(st, ctx){
     : `Pipeline ready: ${h(n.short)} shortlisted and ${h(n.screened)} screened. Drag a card into Outreach to start tracking a deal.`;
   const tile=(label,v,ctxt,frac,key)=>`<${key?"button type=\"button\" data-jump=\""+key+"\"":"div"} class="kpi"><span class="eyebrow">${esc(label)}</span><span class="kpi-v">${v}</span>${frac!=null?`<span class="kmini"><span class="kb"><i style="width:${Math.max(frac>0?2:0,Math.min(100,frac*100)).toFixed(1)}%"></i></span></span>`:""}<span class="ctx">${esc(ctxt)}</span></${key?"button":"div"}>`;
   host.innerHTML=`<div class="hero-top"><div><span class="eyebrow">Deal pipeline · ${esc(M.product)} · ${uni} companies</span><h1 class="hero-h">${head}</h1>
-    <p class="hero-sub">${ctx.sample?"Sample companies and activity for design review.":"Stages, owners and next steps are team data kept outside the published dashboard. Starting stages come from the data: shortlisted, then screened."}</p></div>
+    <p class="hero-sub">${ctx.sample?"Sample companies and activity for design review.":"Stages, owners and next steps are team data kept outside the published dashboard. Starting stages come from the data: shortlisted, then screened."}${!ctx.sample&&!inplay?` <a class="hero-link" href="${href("dev","pipeline-sample",{})}">See a full pipeline with sample data →</a>`:""}</p></div>
     <div class="hero-acts">${syncPill(ctx.store)}<button class="btn" type="button" data-sync>${icon("cog")}Storage</button><button class="btn primary" type="button" id="plPresent">${icon("play")}Present</button></div></div>
     <section class="kpis" aria-label="Pipeline figures">${[["Screened","screened"],["Shortlisted","short"],["Outreach","outreach"],["Engaged","engaged"],["NDA & data","nda"],["At IC","ic"]].map(([l,k])=>tile(l,n[k],`${Math.round(n[k]/Math.max(1,uni)*1000)/10}% of ${uni}`,n[k]/Math.max(1,uni),k)).join("")}
       ${tile("Overdue",overdue,overdue?"next steps past due":"nothing overdue",null,null)}${tile("Median days in stage",med==null?"–":med,inplay?"deals in play":"no deals in play yet",null,null)}</section>`;
@@ -134,16 +134,31 @@ function paintBoard(st, ctx, animate){
   if(animate) C.flip(host,".pc","data-id",apply); else apply();
   if(PG.landed){ const el=host.querySelector(`.pc[data-id="${CSS.escape(PG.landed)}"]`); if(el){ el.classList.add("landed"); if(PG.focus) el.focus({preventScroll:true}); } PG.landed=null; PG.focus=false; }
 }
+/** Where to start when nothing has a next step: the highest-scored shortlisted companies, then screened ones. */
+function starters(ctx){ const pick=k=>ctx.cs.filter(c=>ctx.store.stageOf(c)===k).sort((a,b)=>totalScore(b,{})-totalScore(a,{})); return [...pick("short"),...pick("screened")].slice(0,5); }
 function paintAgenda(ctx){ const host=document.getElementById("plAgenda"); if(!host) return;
-  const items=ctx.cs.map(c=>({c,r:ctx.store.get(c)})).filter(x=>x.r.next&&!stageOf(x.r.stage).closed).map(x=>({...x,due:dueInfo(x.r)}));
+  const all=ctx.cs.map(c=>({c,r:ctx.store.get(c)}));
+  const items=all.filter(x=>x.r.next&&!stageOf(x.r.stage).closed).map(x=>({...x,due:dueInfo(x.r)}));
+  const bare=all.filter(x=>INPLAY.includes(x.r.stage)&&!x.r.next).sort((a,b)=>IDX[b.r.stage]-IDX[a.r.stage]||totalScore(b.c,{})-totalScore(a.c,{}));
   const grp=[["Overdue",x=>x.due&&x.due.days<0],["This week",x=>x.due&&x.due.days>=0&&x.due.days<7],["Next week",x=>x.due&&x.due.days>=7&&x.due.days<14],["Later",x=>x.due&&x.due.days>=14],["No date",x=>!x.due]];
-  const T=document.getElementById("plAgT"); if(T){ const od=items.filter(grp[0][1]).length, wk=items.filter(grp[1][1]).length; T.textContent=items.length?`${wk} due this week${od?`, ${od} overdue`:""}`:"Next actions"; }
-  host.innerHTML=items.length?grp.map(([g,f])=>{ const l=items.filter(f).sort((a,b)=>(a.due?a.due.days:999)-(b.due?b.due.days:999)); return l.length?`<div class="ag-g"><span class="eyebrow">${g} · ${l.length}</span>${l.map(x=>`<button type="button" class="ag-row" data-open="${esc(x.c.id)}"><span class="ag-date ${x.due?x.due.tone:"neu"}">${esc(x.due?x.due.label:"—")}</span><span class="ag-what"><b>${esc(shortName(x.c.name))}</b><span>${esc(x.r.next)}</span></span>${spill(x.r.stage)}${avatar(x.r.owner)}</button>`).join("")}</div>`:""; }).join("")
-    :`<div class="empty-cta"><b>No next steps yet.</b><span>Open a deal card and add a next step with a due date; it appears here, grouped by when it is due.</span></div>`;
-  host.querySelectorAll("[data-open]").forEach(b=>b.onclick=()=>{ const c=ctx.byId.get(b.dataset.open); if(c) openDrawer(c,ctx); }); }
+  const T=document.getElementById("plAgT"), S=document.getElementById("plAgS"), od=items.filter(grp[0][1]).length, wk=items.filter(grp[1][1]).length, sub="Next steps by due date · click to open the deal";
+  if(items.length||bare.length){
+    if(T) T.textContent=items.length?`${wk} due this week${od?`, ${od} overdue`:""}`:`${bare.length} deal${bare.length===1?"":"s"} in play without a next step`; if(S) S.textContent=sub;
+    host.innerHTML=grp.map(([g,f])=>{ const l=items.filter(f).sort((a,b)=>(a.due?a.due.days:999)-(b.due?b.due.days:999)); return l.length?`<div class="ag-g"><span class="eyebrow">${g} · ${l.length}</span>${l.map(x=>`<button type="button" class="ag-row" data-open="${esc(x.c.id)}"><span class="ag-date ${x.due?x.due.tone:"neu"}">${esc(x.due?x.due.label:"—")}</span><span class="ag-what"><b>${esc(shortName(x.c.name))}</b><span>${esc(x.r.next)}</span></span>${spill(x.r.stage)}${avatar(x.r.owner)}</button>`).join("")}</div>`:""; }).join("")
+      +(bare.length?`<div class="ag-g"><span class="eyebrow">In play, no next step · ${bare.length}</span>${bare.map(x=>`<button type="button" class="ag-row" data-open="${esc(x.c.id)}" data-focus="next"><span class="ag-date neu">Add step</span><span class="ag-what"><b>${esc(shortName(x.c.name))}</b><span>No next step set</span></span>${spill(x.r.stage)}${avatar(x.r.owner)}</button>`).join("")}</div>`:"");
+  } else {
+    const st=starters(ctx), kinds=[...new Set(st.map(c=>ctx.store.stageOf(c)))], k1=M.company.kpis[0];
+    if(T) T.textContent=st.length?"Start here":"Next actions"; if(S) S.textContent=st.length?"Highest weighted score first (0–100) · moving one on opens its deal card":sub;
+    host.innerHTML=st.length?`<p class="ag-lead"><b>No next steps yet.</b> These are the highest-scored ${kinds.map(k=>stageOf(k).label.toLowerCase()).join(" and ")} companies. Move one on, then set an owner and the first step.</p>
+      <div class="ag-g">${st.map(c=>{ const k=ctx.store.stageOf(c), nx=FLOW[Math.min(FLOW.length-1,(IDX[k]||0)+1)], g=G[c.prim];
+        return `<div class="ag-row ag-sug"><span class="ag-date sc num" title="Weighted score on default weights (0–100)">Score ${totalScore(c,{}).toFixed(0)}</span><button type="button" class="ag-what" data-open="${esc(c.id)}"><b>${esc(shortName(c.name))}</b><span>${[g?g.short:"",k1?fmtPlain(k1,c.m[k1]):""].filter(Boolean).map(esc).join(" · ")}</span></button>${spill(k)}<button type="button" class="btn sm" data-start="${esc(c.id)}" aria-label="Move ${esc(c.name)} to ${esc(nx.label)}">${icon("next")}${nx.key==="outreach"?"Start outreach":nx.key==="short"?"Shortlist":"Move to "+esc(nx.short)}</button></div>`; }).join("")}</div>`
+      :`<div class="empty-cta"><b>No next steps yet.</b><span>Open a deal card and add a next step with a due date; it appears here, grouped by when it is due.</span></div>`;
+  }
+  host.querySelectorAll("[data-open]").forEach(b=>b.onclick=()=>{ const c=ctx.byId.get(b.dataset.open); if(c) openDrawer(c,ctx,b.dataset.focus); });
+  host.querySelectorAll("[data-start]").forEach(b=>b.onclick=()=>{ const c=ctx.byId.get(b.dataset.start); if(!c) return; move(c,FLOW[Math.min(FLOW.length-1,(IDX[ctx.store.stageOf(c)]||0)+1)].key,ctx); openDrawer(c,ctx,"owner"); }); }
 function paintStall(ctx){ const host=document.getElementById("plStall"); if(!host) return;
   const pts=ctx.cs.filter(c=>["short",...INPLAY].includes(ctx.store.stageOf(c))&&ctx.store.daysInStage(c)!=null).map(c=>{ const v=sizeKey?c.m[sizeKey]:null; return {c,x:ctx.store.daysInStage(c),y:totalScore(c,{}),v}; });
-  if(pts.length<2){ host.innerHTML=`<div class="empty-cta"><b>Builds up as deals move.</b><span>Once a few deals have spent time in a stage, this shows which attractive ones are stalling.</span></div>`; return; }
+  if(pts.length<2){ host.innerHTML=`<div class="st-q" aria-hidden="true"><span>Attractive, moving</span><span class="hot">Attractive, stalled</span><span>Lower score, moving</span><span>Lower score, stalled</span></div><div class="empty-cta"><b>Builds up as deals move.</b><span>Each deal is plotted by days in its stage against its score; attractive deals that sit too long land top right.</span></div>`; return; }
   const vs=pts.map(p=>p.v).filter(v=>v>0), lo=Math.min(...vs), hi=Math.max(...vs);
   host.innerHTML=`<div id="plStallLab"></div>`;
   new C.Lab(host.firstChild,{height:280,points:pts.map(p=>({id:p.c.id,x:p.x,y:p.y,r:p.v>0?4+12*Math.sqrt((p.v-lo)/((hi-lo)||1)):4,color:stageColor(ctx.store.stageOf(p.c)),shape:"circle",label:shortName(p.c.name),name:shortName(p.c.name),c:p.c})),
