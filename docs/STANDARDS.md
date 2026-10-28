@@ -13,7 +13,7 @@ A new dashboard is one adapter file plus its data files; the shell, pages, chart
 5. **All state in the URL** (`#/page/arg?filters`), so any view can be bookmarked or sent.
 6. **Shortlists live in the repo** (`shortlist.js` per dashboard), not in the browser.
 7. **Ask before adding a dependency.** Current external tools: git, PowerShell (build/QA), Playwright in CI only.
-8. **Nothing confidential in commit messages, issue titles or other public metadata.** Bot commits say "Market refresh", "Rebuild dashboards", "EMS data sync", "Diligence update (issue #n)".
+8. **Nothing confidential in commit messages, issue titles or other public metadata.** Bot commits say "Market refresh", "Rebuild dashboards", "EMS data sync", "Diligence update (issue #n)", "Dashboard edit <id>".
 
 ## Interface (v2)
 - **Hero bands** in brand navy open the Overview, Screener, Shortlist and Company pages; KPI tiles sit on frosted glass with a micro-chart (share of universe or distribution with the company/median marked).
@@ -36,6 +36,13 @@ A new dashboard is one adapter file plus its data files; the shell, pages, chart
 ## EMS data source
 - The EMS dashboard's `ems/data.js` is written by a script on the analyst's own PC (reads the local workbook's "Consol Target Outreach List" tab, checks hourly and on save, pushes `ems/data.js` only when the data actually changed). That machine is the sole writer; there is no scheduled GitHub Actions sync pulling from elsewhere.
 - `scripts/sheet-sync.ps1` remains in the repo as the reference converter (column rules, 3-decimal rounding, `&`/`'`/`<`/`>` escaping) and is still exercised by `qa.ps1` against a synthetic fixture (`tools/fixtures/`, made-up companies) on every build, requiring a byte-identical result so the converter logic stays verified under both Windows PowerShell 5.1 and PowerShell 7 — this is a parity check only, not a live data path.
+
+## Team edits (shared Claude project)
+- Anyone on the team changes the dashboards from the shared "GPC Dashboards" project in their own Claude (GPC account), with no GitHub account and no one else's computer or Claude account involved. Their Claude follows `CLAUDE.md` and uses the edit kit (`tools/edit/edit.sh`: start, submit, wait, publish, undo, list, discard).
+- The project holds the instructions and the GitHub key (fine-grained, this repo only, contents read/write, no workflow access). Anyone in the project can use it, so replace it when someone leaves. The key never goes in the repo.
+- Each edit is a branch `edit/<id>` (UTC date and time plus 4 random characters). `.github/workflows/preview.yml` rejects changes to protected files (data, built dashboards, QA, tools, workflows, `CLAUDE.md`), runs the build, static QA and browser QA, and saves the result, with the built dashboards when everything passed, to `preview/<id>`. The person reviews the preview file; publish merges the edit into `main` only if that exact version passed, and the normal build then republishes the site.
+- Commits say only "Dashboard edit <id>" or "Undo dashboard edit <id>"; who asked for what stays in their own chat. Edit and preview branches older than 14 days are deleted automatically.
+- Claude chats reach GitHub through code execution; Team plans allow github.com by default.
 
 ## Brand
 Source: `brand/brand.json` (logo pixels, website, decks; no brand guide was supplied).
