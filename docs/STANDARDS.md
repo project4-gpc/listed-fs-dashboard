@@ -62,4 +62,3 @@ Light theme only. Logo is the official raster file, unmodified; a proper SVG and
 - `qa.ps1` token rule, offline output, verbatim data, palette report (`docs/palette-report.txt`), ASCII scripts, public-metadata rule.
 - `tools/qa-browser.js` every page and company renders without errors, no NaN/undefined, charts carry units, every screener cell equals the model value.
 - `tools/pack.mjs` (CI) runs the browser QA, checks 390px has no horizontal scroll, and prints each IC pack to a 16:9 PDF artifact.
-<!-- edit kit undo test -->
