@@ -43,6 +43,13 @@ g(){ # git, authenticated with the key when there is one
   fi
 }
 
+push(){ # git push without GitHub's chatter; shows git's output only when the push fails
+  local out
+  if out="$(g push -q "$@" 2>&1)"; then return 0; fi
+  echo "$out" | grep -v '^remote: *$' >&2
+  return 1
+}
+
 cur_id(){ [ -f "$state" ] || die "no edit in progress here; run: bash tools/edit/edit.sh start"; cat "$state"; }
 
 result_of(){ # result.txt of preview/<id>, or nothing
@@ -78,7 +85,7 @@ $bad"; fi
     done
   fi
   git diff --cached --quiet || git "${BOT[@]}" commit -q -m "Dashboard edit $id"
-  g push -q -f origin "edit/$id"
+  push -f origin "edit/$id" || die "could not send the edit to GitHub (see above)"
   echo "Sent edit $id ($(git rev-parse --short HEAD)) to GitHub. Building and checking takes 4-8 minutes."
   echo "Next: bash tools/edit/edit.sh wait"
 }
@@ -129,12 +136,12 @@ cmd_publish(){
       git merge --abort 2>/dev/null || true; git checkout -q "edit/$id"
       die "the edit clashes with newer changes. Run: bash tools/edit/edit.sh refresh, then submit and wait again"
     fi
-    if g push -q origin HEAD:main; then ok=1; break; fi
+    if push origin HEAD:main; then ok=1; break; fi
     sleep 5
   done
   git checkout -q "edit/$id"
   [ -n "$ok" ] || die "could not publish because the live version kept changing; run publish again"
-  g push -q origin --delete "edit/$id" "preview/$id" 2>/dev/null || true
+  push origin --delete "edit/$id" "preview/$id" 2>/dev/null || true
   rm -f "$state"
   echo "Published edit $id. The live dashboards update in about 3-5 minutes (refresh the page): $SITE"
   echo "To undo it: bash tools/edit/edit.sh undo $id"
@@ -153,7 +160,7 @@ cmd_refresh(){
 
 cmd_discard(){
   local id; id="$(cur_id)"
-  g push -q origin --delete "edit/$id" "preview/$id" 2>/dev/null || true
+  push origin --delete "edit/$id" "preview/$id" 2>/dev/null || true
   g fetch -q origin main
   git checkout -q -f --detach origin/main
   git branch -q -D "edit/$id" 2>/dev/null || true
@@ -182,7 +189,7 @@ cmd_undo(){
       die "later edits build on edit $tid, so it can't be undone on its own; undo the later edits first"
     fi
     git "${BOT[@]}" commit -q --amend -m "Undo dashboard edit $tid"
-    if g push -q origin HEAD:main; then ok=1; break; fi
+    if push origin HEAD:main; then ok=1; break; fi
     sleep 5
   done
   [ -n "$ok" ] || die "could not undo because the live version kept changing; run undo again"
