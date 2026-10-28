@@ -1,0 +1,124 @@
+name: Preview edit
+
+# Builds and checks an edit pushed by the team's Claude (tools/edit/edit.sh, see CLAUDE.md), then saves the result to
+# the branch preview/<id>, with the built dashboards when every check passed, so the edit can be reviewed before it goes
+# live. The checks live here and not in the edit branch: the team's GitHub key cannot change workflow files.
+# Pushes made with GITHUB_TOKEN do not trigger workflows, so saving the preview starts nothing else.
+on:
+  push:
+    branches: ["edit/**"]
+
+permissions:
+  contents: write
+
+concurrency:
+  group: preview-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  preview:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Only editable files changed
+        id: scope
+        shell: bash
+        run: |
+          mkdir -p out
+          git diff --name-only "$(git merge-base HEAD origin/main)" HEAD > out/changed.txt
+          bad="$(grep -E '^(data\.js|market\.js|diligence\.js|ems/data\.js|index\.html|ems/index\.html|team\.js|qa\.ps1|CLAUDE\.md|docs/palette-report\.txt|\.gitattributes)$|^(\.github|tools|scripts)/' out/changed.txt || true)"
+          if [ -n "$bad" ]; then
+            { echo "These files must not be changed by an edit (see CLAUDE.md):"; echo "$bad"; } | tee out/scope.log
+            exit 1
+          fi
+          echo "$(wc -l < out/changed.txt) file(s) changed, none of them protected." | tee out/scope.log
+
+      - name: Build and static QA
+        id: build
+        if: steps.scope.outcome == 'success'
+        shell: pwsh
+        run: |
+          try { ./build.ps1 *> out/build.log } catch { "BUILD ERROR: $_" | Add-Content out/build.log; Get-Content out/build.log; exit 1 }
+          Get-Content out/build.log
+          ./qa.ps1 *> out/qa.log
+          $code = $LASTEXITCODE
+          Get-Content out/qa.log
+          exit $code
+
+      - uses: actions/setup-node@v4
+        if: steps.build.outcome == 'success'
+        with:
+          node-version: 20
+
+      - name: Browser checks (Playwright)
+        id: browser
+        if: steps.build.outcome == 'success'
+        shell: bash
+        run: |
+          npm install --no-save --no-audit --no-fund playwright@1.47.2 > /dev/null
+          npx playwright install --with-deps chromium > /dev/null
+          set +e
+          node tools/pack.mjs > out/browser.log 2>&1
+          code=$?
+          cat out/browser.log
+          exit $code
+
+      - name: Save the result to preview/<id>
+        # not when cancelled: a newer push to the same edit replaces this run, and its result must not be overwritten
+        if: ${{ !cancelled() }}
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          SCOPE: ${{ steps.scope.outcome }}
+          BUILD: ${{ steps.build.outcome }}
+          BROWSER: ${{ steps.browser.outcome }}
+        run: |
+          id="${GITHUB_REF_NAME#edit/}"
+          sha="$(git rev-parse HEAD)"
+          status=pass; failed=""
+          if [ "$SCOPE" != success ]; then status=fail; failed="protected files changed"
+          elif [ "$BUILD" != success ]; then status=fail; failed="build or static QA"
+          elif [ "$BROWSER" != success ]; then status=fail; failed="browser checks"; fi
+          fs=0; ems=0
+          if [ "$status" = pass ]; then
+            if grep -qE '^(kit/|brand/|build\.ps1$)' out/changed.txt; then fs=1; ems=1; fi
+            if grep -qE '^(src/fs/|shortlist\.js$)' out/changed.txt; then fs=1; fi
+            if grep -qE '^(src/ems/|ems/shortlist\.js$)' out/changed.txt; then ems=1; fi
+          fi
+          changed=""
+          if [ "$fs" = 1 ]; then changed="fs"; fi
+          if [ "$ems" = 1 ]; then changed="${changed:+$changed,}ems"; fi
+          tmp="$(mktemp -d)"
+          {
+            echo "commit=$sha"
+            echo "status=$status"
+            echo "failed=$failed"
+            echo "changed=$changed"
+            echo "---"
+            for f in scope build qa browser; do
+              if [ -f "out/$f.log" ]; then echo "== $f"; tail -n 80 "out/$f.log"; fi
+            done
+          } > "$tmp/result.txt"
+          if [ "$status" = pass ]; then
+            cp index.html "$tmp/index.html"
+            mkdir -p "$tmp/ems"
+            cp ems/index.html "$tmp/ems/index.html"
+          fi
+          remote="https://github.com/$GITHUB_REPOSITORY.git"
+          auth="http.https://github.com/.extraheader=AUTHORIZATION: basic $(printf 'x-access-token:%s' "$GH_TOKEN" | base64 -w0)"
+          cd "$tmp"
+          git init -q
+          git checkout -q -b preview
+          git add -A
+          git -c user.name=build-bot -c user.email=build-bot@users.noreply.github.com commit -q -m "Preview $id"
+          git -c "$auth" push -q -f "$remote" "HEAD:refs/heads/preview/$id"
+          echo "Saved the $status result to preview/$id"
+          # Edits and previews older than 14 days are dropped (ids start with the UTC date).
+          cutoff="$(date -u -d '14 days ago' +%Y%m%d)"
+          old="$(git -c "$auth" ls-remote --heads "$remote" | awk '{print $2}' | sed -n 's#^refs/heads/\(\(edit\|preview\)/[0-9]\{8\}-.*\)$#\1#p' | awk -F/ -v c="$cutoff" 'substr($2,1,8) < c' || true)"
+          if [ -n "$old" ]; then git -c "$auth" push -q "$remote" --delete $old || true; fi
+          exit 0
