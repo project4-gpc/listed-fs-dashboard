@@ -36,7 +36,7 @@ foreach($o in $outs){
 }
 
 Write-Output "3. Data files are embedded verbatim (no number touched by the build)"
-$map = @{ 'index.html'=@('data.js','market.js','diligence.js','shortlist.js'); 'ems/index.html'=@('ems/data.js','ems/shortlist.js') }
+$map = @{ 'index.html'=@('data.js','market.js','diligence.js','shortlist.js','team.js'); 'ems/index.html'=@('ems/data.js','ems/shortlist.js','team.js') }
 foreach($o in $map.Keys){ $h = Txt $o
   foreach($d in $map[$o]){ $t = (Txt $d) -replace '</(script)', '<\/$1'; if($h.Contains($t)){ Pass "$d embedded verbatim in $o" } else { Fail "$d is not embedded verbatim in $o" } } }
 

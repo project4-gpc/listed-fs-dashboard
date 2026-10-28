@@ -19,6 +19,7 @@ on:
       - "shortlist.js"
       - "ems/data.js"
       - "ems/shortlist.js"
+      - "team.js"
   workflow_dispatch:
 
 permissions:

@@ -104,7 +104,8 @@
       finally{ if(keep==null) localStorage.removeItem("gpc-pipe-cfg"); else localStorage.setItem("gpc-pipe-cfg",keep); localStorage.removeItem("gpc-pipe-cfg-qa-a"); }
       // the ?connect=1 link opens the storage dialog on the team option, and closing it drops the flag from the address
       goto("#/pipeline?connect=1"); const dlg=document.getElementById("pipeCfg");
-      if(!dlg||dlg.hidden||dlg.querySelector('[data-mode="github"]').getAttribute("aria-pressed")!=="true") fail("pipeline","connect link did not open the team storage setup");
+      if(!dlg||dlg.hidden||(P.cfg.mode!=="github"&&dlg.querySelector('[data-mode="team"]').getAttribute("aria-pressed")!=="true")) fail("pipeline","connect link did not open the team storage setup");
+      if(dlg&&!P.team&&!dlg.querySelector(".cfg-own").open) fail("pipeline","with no team access yet, the connect link does not show the owner setup");
       if(dlg){ dlg.querySelector("[data-close]").click(); if(/connect=/.test(location.hash)) fail("pipeline","connect flag left in the address"); }
       // team sync against a mocked GitHub API (no network, no real token)
       const realFetch=window.fetch, srv={priv:true,content:null,sha:null,conflict:true}, J=(o,s=200)=>new Response(JSON.stringify(o),{status:s,headers:{"Content-Type":"application/json"}});
@@ -132,6 +133,35 @@
         srv.big=false; srv.content=null; srv.sha=null; const s3=new PL.Store({key:"qa-mock3",memory:true}); s3.saveCfg({mode:"github",repo:"o/r",token:"t",api:"https://mock.test"});
         s3.state={v:1,recs:{"Local Co":{stage:"outreach",u:new Date().toISOString(),log:[]}}}; await s3.pull();
         const up=JSON.parse(srv.content||"{}"); if(!up.recs||!up.recs["Local Co"]) fail("pipeline sync","records kept on this device before connecting were not uploaded");
+        // team password: wrong password refused, right one opens; a token replaced under the same password keeps devices unlocked
+        const TM=PL.Team, pw="correct horse battery staple", A1=await TM.create({token:"tok-1",password:pw,repo:"o/r"});
+        let refused=false; try{ await TM.unlock(A1.access,"not the team password at all"); }catch(e){ refused=true; }
+        if(!refused) fail("team access","a wrong team password was accepted");
+        if((await TM.unlock(A1.access,pw)).token!=="tok-1") fail("team access","the team password did not open the access code");
+        if(JSON.stringify(A1.access).includes("tok-1")) fail("team access","the access code contains the token in clear");
+        const A2=await TM.create({token:"tok-2",password:pw,repo:"o/r",prev:A1.access});
+        if(!A2.kept||A2.access.salt!==A1.access.salt||await TM.open(A2.access,A1.key)!=="tok-2") fail("team access","replacing the token under the same password would lock devices out");
+        const A3=await TM.create({token:"tok-3",password:"a different long team password",repo:"o/r",prev:A2.access});
+        if(A3.kept||await TM.open(A3.access,A1.key)) fail("team access","a new team password did not lock out the old key");
+        // a device unlocks with the password, syncs, and on its next visit opens with the kept key alone
+        srv.content=null; srv.sha=null; const team={...A2.access,api:"https://mock.test"};
+        const s5=new PL.Store({key:"qa-team",memory:true,team});
+        if(s5.teamState()!=="locked") fail("team access",`a new device should be locked, got ${s5.teamState()}`);
+        await s5.unlockTeam(pw,"QA");
+        if(s5.teamState()!=="open"||s5.status.state!=="synced") fail("team access",`unlocking did not sync: ${s5.teamState()} ${s5.status.state} ${s5.status.msg}`);
+        s5.update({name:"Team Co"},{stage:"engaged"}); await s5.push();
+        const tf=JSON.parse(srv.content||"{}"); if(!tf.recs||!tf.recs["Team Co"]) fail("team access","a change made after unlocking did not reach the team file");
+        const s6=new PL.Store({key:"qa-team",memory:true,team}); s6._mem=s5._mem; s6.cfg={...s5.cfg}; await s6.init();
+        if(s6.teamState()!=="open"||!s6.rec("Team Co")) fail("team access","an unlocked device asked for the password again");
+        // the Pipeline page offers the team password on a locked device, and unlocking there syncs it
+        const keepCfg=localStorage.getItem("gpc-pipe-cfg"), keepMode=P.cfg.mode, keepOff=P.cfg.teamOff;
+        try{ P.team=team; P.saveCfg({mode:"local",teamOff:false}); goto("#/pipeline");
+          const uf=document.getElementById("plUnlock");
+          if(!uf) fail("team access","the Pipeline page did not ask a locked device for the team password");
+          else { uf.elements.pw.value=pw; uf.elements.me.value="QA"; uf.requestSubmit(); await U._pg.unlocking;
+            if(P.teamState()!=="open"||P.status.state!=="synced") fail("team access",`unlocking from the page failed: ${P.teamState()} ${P.status.state} ${P.status.msg}`); } }
+        finally{ P.kv("teamkey",null); P.teamToken=null; P.team=P.teamPub; P.saveCfg({mode:keepMode||"local",teamOff:keepOff});
+          if(keepCfg==null) localStorage.removeItem("gpc-pipe-cfg"); else localStorage.setItem("gpc-pipe-cfg",keepCfg); await P.pull(); }
       } finally { window.fetch=realFetch; }
       P.state=JSON.parse(backup); await P.push(); goto("#/pipeline");
     }

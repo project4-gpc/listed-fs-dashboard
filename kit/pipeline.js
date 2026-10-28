@@ -74,11 +74,43 @@ class GitHubBackend{
   }
 }
 
+// ---------- team access: one team password instead of tokens ----------
+// The pipeline owner encrypts the GitHub token for the private repo with a team password (PBKDF2-SHA256, 600,000
+// iterations, then AES-256-GCM). The result ("access code") is published with the dashboards in team.js: without the
+// password it is useless. A device that has unlocked once keeps the derived key (never the password or the token),
+// so the owner can replace the token under the same password without anyone entering anything again.
+const TEAM_ITER=600000, enc8=new TextEncoder();
+const u8b64=buf=>{ const b=new Uint8Array(buf); let s=""; for(let i=0;i<b.length;i++) s+=String.fromCharCode(b[i]); return btoa(s); };
+const b64u8=s=>Uint8Array.from(atob(s),c=>c.charCodeAt(0));
+async function teamKey(password, salt, iter){ const base=await crypto.subtle.importKey("raw",enc8.encode(password),"PBKDF2",false,["deriveKey"]);
+  return crypto.subtle.deriveKey({name:"PBKDF2",salt,iterations:iter,hash:"SHA-256"},base,{name:"AES-GCM",length:256},true,["encrypt","decrypt"]); }
+async function openWith(key, a){ try{ const pt=await crypto.subtle.decrypt({name:"AES-GCM",iv:b64u8(a.iv)},key,b64u8(a.ct)); const j=JSON.parse(new TextDecoder().decode(pt)); return j&&j.token?j.token:null; }catch(e){ return null; } }
+const Team={
+  MIN:16,
+  /** Encrypt a token under the team password. With prev (the current access code) and the same password, the salt is kept so unlocked devices stay unlocked. */
+  async create({token, password, repo, branch, prev}){
+    let salt=null, iter=TEAM_ITER, key=null, kept=false;
+    if(prev&&prev.salt){ const k=await teamKey(password,b64u8(prev.salt),prev.iter||TEAM_ITER); if(await openWith(k,prev)){ salt=b64u8(prev.salt); iter=prev.iter||TEAM_ITER; key=k; kept=true; } }
+    if(!key){ salt=crypto.getRandomValues(new Uint8Array(16)); key=await teamKey(password,salt,iter); }
+    const iv=crypto.getRandomValues(new Uint8Array(12)), ct=await crypto.subtle.encrypt({name:"AES-GCM",iv},key,enc8.encode(JSON.stringify({token})));
+    return {access:{v:1,repo,branch:branch||"main",kdf:"PBKDF2-SHA256",iter,salt:u8b64(salt),iv:u8b64(iv),ct:u8b64(ct),t:nowISO()}, key:u8b64(await crypto.subtle.exportKey("raw",key)), kept};
+  },
+  /** Open an access code with the team password: the token, plus the derived key for this device to keep. */
+  async unlock(a, password){ const key=await teamKey(password,b64u8(a.salt),a.iter||TEAM_ITER), token=await openWith(key,a);
+    if(!token) throw new Error("That team password doesn't match."); return {token, key:u8b64(await crypto.subtle.exportKey("raw",key))}; },
+  /** Open an access code with a key kept from an earlier unlock; null when the team password has changed since. */
+  async open(a, rawKey){ if(!a||!rawKey) return null; try{ const key=await crypto.subtle.importKey("raw",b64u8(rawKey),{name:"AES-GCM"},false,["decrypt"]); return await openWith(key,a); }catch(e){ return null; } },
+  /** team.js as published with the dashboards. */
+  file(a){ return `/* Team access for the deal pipeline, created in the dashboard's Storage dialog by the pipeline owner.\n   The GitHub token for the private pipeline repo, encrypted with the team password (PBKDF2-SHA256, ${a.iter} iterations,\n   AES-256-GCM): safe to publish, only the team password opens it. null = not set up (each device keeps its own pipeline). */\nwindow.TEAM_ACCESS = ${JSON.stringify(a)};\n`; }
+};
+
 class Store{
   constructor(o){
     this.key=o.key; this.stages=o.stages||STAGES; this.idx=Object.fromEntries(this.stages.map((s,i)=>[s.key,i]));
     this.seed=o.seed||(()=>"long"); this.state={v:1,recs:{}}; this.subs=new Set();
-    this.memory=!!o.memory; this.cfg=this.memory?{}:Store.loadCfg(o.key);
+    this.memory=!!o.memory; this.cfg=this.memory?{}:Store.loadCfg(o.key); this._mem={};
+    this.teamPub=o.team||null; this.team=this.pickTeam(); this.teamToken=null;
+    this.teamOpening=this.cfg.mode==="team"&&!!this.team&&!!this.kv("teamkey");
     this.status={mode:this.memory?"memory":(this.cfg.mode||"local"),state:"idle",at:null,msg:""};
     this.cacheKey="gpc-pipe-cache-"+o.key; this.local=this.memory?new MemoryBackend():new LocalBackend(o.key); this.dirty=false;
     if(!this.memory) addEventListener("online",()=>{ if(this.dirty) this.push(); else this.pull(); });
@@ -89,7 +121,24 @@ class Store{
   saveCfg(cfg){ this.cfg={...this.cfg,...cfg}; this._gh=null; if(this.memory) return;
     try{ const {path,...shared}=this.cfg; localStorage.setItem("gpc-pipe-cfg", JSON.stringify(shared)); localStorage.setItem("gpc-pipe-cfg-"+this.key, JSON.stringify(path?{path}:{})); }catch(e){} }
   path(){ return this.cfg.path||`pipeline/${this.key}.json`; }
-  backend(){ if(this.cfg.mode==="github"&&this.cfg.repo&&this.cfg.token){ if(!this._gh) this._gh=new GitHubBackend({repo:this.cfg.repo,branch:this.cfg.branch,path:this.path(),token:this.cfg.token,api:this.cfg.api}); return this._gh; } return this.local; }
+  backend(){
+    if(this.cfg.mode==="team"&&this.team&&this.teamToken){ if(!this._gh) this._gh=new GitHubBackend({repo:this.team.repo,branch:this.team.branch,path:this.path(),token:this.teamToken,api:this.team.api}); return this._gh; }
+    if(this.cfg.mode==="github"&&this.cfg.repo&&this.cfg.token){ if(!this._gh) this._gh=new GitHubBackend({repo:this.cfg.repo,branch:this.cfg.branch,path:this.path(),token:this.cfg.token,api:this.cfg.api}); return this._gh; }
+    return this.local; }
+  repoName(){ return this.cfg.mode==="team"&&this.team?this.team.repo:this.cfg.repo; }
+  // device-level keeps shared by every dashboard on the site: the derived team key, and an access code created here that is not published yet
+  kv(k, v){ const n="gpc-pipe-"+k; if(this.memory){ if(v===undefined) return this._mem[n]??null; this._mem[n]=v; return; }
+    try{ if(v===undefined) return JSON.parse(localStorage.getItem(n)||"null"); if(v===null) localStorage.removeItem(n); else localStorage.setItem(n, JSON.stringify(v)); }catch(e){ return null; } }
+  pickTeam(){ const pub=this.teamPub, pend=this.kv("teampending"); if(pend&&(!pub||(pend.t||"")>(pub.t||""))) return pend; if(pend) this.kv("teampending",null); return pub; }
+  /** "none" (not set up), "open" (this device syncs as the team), "own" (own token), "opening", or "locked". */
+  teamState(){ return !this.team?"none":this.cfg.mode==="team"&&this.teamToken?"open":this.teamOpening?"opening":this.cfg.mode==="github"?"own":"locked"; }
+  async openTeam(){ this.teamToken=null; this._gh=null; const k=this.kv("teamkey");
+    this.teamToken=this.team&&k&&k.salt===this.team.salt?await Team.open(this.team,k.key):null; this.teamOpening=false; return !!this.teamToken; }
+  async unlockTeam(password, me){ if(!this.team) throw new Error("Team access has not been set up yet."); const r=await Team.unlock(this.team,password);
+    this.kv("teamkey",{salt:this.team.salt,key:r.key}); this.teamToken=r.token; this.saveCfg({mode:"team",teamOff:false,...(me?{me}:{})}); await this.pull(); return this.status; }
+  /** The owner created a new access code on this device: use it now, and keep it until the published dashboards carry it. */
+  async adoptTeam(res){ this.kv("teampending",res.access); this.team=res.access; this.kv("teamkey",{salt:res.access.salt,key:res.key}); this.saveCfg({mode:"team",teamOff:false}); await this.openTeam(); await this.pull(); return this.status; }
+  lockTeam(){ this.kv("teamkey",null); this.teamToken=null; this.saveCfg({mode:"local"}); return this.pull(); }
   me(){ return String(this.cfg.me||"").trim(); }
   on(fn){ this.subs.add(fn); return ()=>this.subs.delete(fn); }
   emit(){ this.subs.forEach(f=>{ try{ f(); }catch(e){ (window.__ERRORS||[]).push(String(e)); } }); }
@@ -98,25 +147,28 @@ class Store{
   async init(){
     if(!this.memory){ try{ const c=localStorage.getItem(this.cacheKey); if(c) this.state=mergeState(this.state, JSON.parse(c)); }catch(e){} }
     const l=await this.local.load(); if(l.data) this.state=mergeState(this.state,l.data);
+    if(this.cfg.mode==="team") await this.openTeam();
     this.emit(); return this.pull();
   }
+  teamMsg(e){ return this.cfg.mode==="team"&&/token/i.test(e.message)?"The team access has expired or been revoked. The pipeline owner needs to renew it under Storage.":e.message; }
   async pull(){
+    if(this.cfg.mode==="team"&&!this.teamToken){ this._gh=null; this.setStatus({mode:"team",state:"locked",at:null,msg:this.team?"Enter the team password to sync with the team.":"Team access has not been set up yet."}); return; }
     const be=this.backend(); this.setStatus({mode:be.kind});
     if(be.kind!=="github"){ this.setStatus({state:be.kind,at:new Date(),msg:""}); return; }
     this.setStatus({state:"syncing"});
     try{ const r=await be.load(), ahead=aheadOf(this.state,r.data); if(r.data) this.state=mergeState(this.state,r.data); this.cache(); this.setStatus({state:"synced",at:new Date(),msg:""}); if(this.dirty||ahead) await this.push(); }
-    catch(e){ this.setStatus({state:navigator.onLine===false?"offline":"error",msg:e.message}); }
+    catch(e){ this.setStatus({state:navigator.onLine===false?"offline":"error",msg:this.teamMsg(e)}); }
   }
   schedule(){ this.dirty=true; this.cache(); clearTimeout(this._t); this._t=setTimeout(()=>this.push(),this.memory?0:1200); }
   async push(){
     const be=this.backend(); this.cache();
-    if(be.kind!=="github"){ await be.save(this.state); this.dirty=false; this.setStatus({state:be.kind,at:new Date(),msg:""}); return; }
+    if(be.kind!=="github"){ await be.save(this.state); const locked=this.cfg.mode==="team"; this.dirty=locked; this.setStatus(locked?{mode:"team",state:"locked"}:{state:be.kind,at:new Date(),msg:""}); return; }
     this.setStatus({state:"saving"});
     for(let i=0;i<4;i++){
       try{ if(i===0&&!be.sha){ const r=await be.load(); if(r.data) this.state=mergeState(this.state,r.data); }
         await be.save(this.state); this.dirty=false; this.cache(); this.setStatus({state:"synced",at:new Date(),msg:""}); return; }
       catch(e){ if(e.conflict){ const r=await be.load().catch(()=>({data:null})); if(r.data) this.state=mergeState(this.state,r.data); continue; }
-        this.setStatus({state:navigator.onLine===false?"offline":"error",msg:e.message+" Changes are kept on this device and will sync later."}); return; }
+        this.setStatus({state:navigator.onLine===false?"offline":"error",msg:this.teamMsg(e)+" Changes are kept on this device and will sync later."}); return; }
     }
     this.setStatus({state:"error",msg:"Could not save after several tries; changes are kept on this device."});
   }
@@ -145,5 +197,5 @@ class Store{
   exportJSON(){ return JSON.stringify(this.state,null,1); }
   importJSON(s){ const d=JSON.parse(s); if(!d||typeof d.recs!=="object") throw new Error("That is not a pipeline file."); this.state=mergeState(this.state,d); this.emit(); this.schedule(); }
 }
-window.Pipeline={ STAGES, Store, GitHubBackend, LocalBackend, MemoryBackend, mergeState, mergeLogs, aheadOf, b64encode, b64decode, dayKey };
+window.Pipeline={ STAGES, Store, Team, GitHubBackend, LocalBackend, MemoryBackend, mergeState, mergeLogs, aheadOf, b64encode, b64decode, dayKey };
 })();

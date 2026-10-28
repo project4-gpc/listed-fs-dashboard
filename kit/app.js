@@ -16,7 +16,7 @@ const CRIT = M.scoring ? M.scoring.criteria : [];
 const RM = ()=> !!(window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches);
 window.MODEL = M;
 // deal pipeline: team data, kept on this device or in a private repo (kit/pipeline.js); seeded from the data only
-const PIPE = new window.Pipeline.Store({key:M.key, stages:window.Pipeline.STAGES, seed:(M.pipeline&&M.pipeline.seed)||(c=>c.shortlisted?"short":"long")});
+const PIPE = new window.Pipeline.Store({key:M.key, stages:window.Pipeline.STAGES, seed:(M.pipeline&&M.pipeline.seed)||(c=>c.shortlisted?"short":"long"), team:(DATA.cur&&DATA.cur.TEAM_ACCESS)||null});
 TEXT.stage = {label:"Pipeline stage",short:"Stage",group:"Pipeline",def:"Deal stage from the team pipeline (team data; not part of the published file)",source:"Pipeline"};
 M.views.forEach(v=>{ if((v.key==="default"||v.key==="all")&&!v.cols.includes("stage")) v.cols=v.cols.concat("stage"); });
 

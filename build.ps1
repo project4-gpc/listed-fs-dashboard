@@ -10,9 +10,9 @@ function B64($p){ [Convert]::ToBase64String([IO.File]::ReadAllBytes((Join-Path $
 
 $dashboards = @(
   @{ key='fs';  short='Listed FS';   out='index.html';     adapter='src/fs/adapter.js';  primary='market.js';
-     files=@('data.js','market.js','diligence.js','shortlist.js') },
+     files=@('data.js','market.js','diligence.js','shortlist.js','team.js') },
   @{ key='ems'; short='EMS targets'; out='ems/index.html'; adapter='src/ems/adapter.js'; primary='ems/data.js';
-     files=@('ems/data.js','ems/shortlist.js') }
+     files=@('ems/data.js','ems/shortlist.js','team.js') }
 )
 
 function GitBytes([string[]]$argList){

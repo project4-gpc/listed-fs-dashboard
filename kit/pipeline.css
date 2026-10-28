@@ -210,8 +210,33 @@ button.ag-what b{color:var(--text)} button.ag-what:hover b{text-decoration:under
 .cfg > *{flex-shrink:0}
 .cfg label{display:flex;flex-direction:column;gap:var(--s-1);font-size:var(--fs-caption);color:var(--text-muted)}
 .cfg label.btn{flex-direction:row;align-items:center;color:var(--text)}
-.cfg .cfg-gh{display:flex;flex-direction:column;gap:var(--s-3);padding:var(--s-3);border:var(--bw) solid var(--border);border-radius:var(--r-2);background:var(--surface-sunk)}
-.cfg .cfg-gh[hidden]{display:none}
+.cfg .seg{display:flex;width:100%}
+.cfg .seg button{flex:1;white-space:normal;height:auto;min-height:calc(var(--s-6) + var(--s-1));padding:var(--s-1) var(--s-2)}
+.cfg .cfg-sec{display:flex;flex-direction:column;gap:var(--s-3);padding:var(--s-3);border:var(--bw) solid var(--border);border-radius:var(--r-2);background:var(--surface-sunk)}
+.cfg .cfg-sec[hidden],.cfg .btn[hidden]{display:none}
+.cfg .cfg-sec .caption{margin:var(--s-0)}
+.cfg-own{border-top:var(--bw) solid var(--border);padding-top:var(--s-3)}
+.cfg-own > summary{cursor:pointer;font-size:var(--fs-small);font-weight:var(--fw-semibold);color:var(--text)}
+.cfg-own-b{display:flex;flex-direction:column;gap:var(--s-3);margin-top:var(--s-3)}
+.cfg-own-b .caption{margin:var(--s-0)}
+.cfg-own-out{display:flex;flex-direction:column;gap:var(--s-2)}
+.cfg-own-out[hidden]{display:none}
+.cfg-own-out textarea{font-size:var(--fs-micro);word-break:break-all;resize:vertical;height:auto;padding:var(--s-2)}
+.cfg-ost:empty{display:none}
+
+/* ---------- team unlock (pipeline hero) ---------- */
+.pl-unlock{display:grid;grid-template-columns:auto minmax(var(--s-0),1fr) minmax(var(--s-0),calc(var(--s-16) * 2.8)) minmax(var(--s-0),calc(var(--s-16) * 2.2)) auto auto;gap:var(--s-2) var(--s-3);align-items:center;margin-top:var(--s-4);padding:var(--s-3) var(--s-4);border-radius:var(--r-3);background:var(--glass-bg);border:var(--bw) solid var(--glass-border);backdrop-filter:blur(6px);animation:ch-fade var(--dur-3) var(--ease) both}
+.pl-unlock-i{display:inline-flex;align-items:center;justify-content:center;width:var(--s-8);height:var(--s-8);border-radius:var(--r-pill);background:var(--glass-bg-hover);color:var(--on-dark)}
+.pl-unlock-i svg{width:var(--icon);height:var(--icon)}
+.pl-unlock-t{display:flex;flex-direction:column;gap:var(--s-half);color:var(--on-dark-muted);font-size:var(--fs-caption);min-width:var(--s-0)}
+.pl-unlock-t b{color:var(--on-dark);font-size:var(--fs-small)}
+.hero .pl-unlock .linkbtn{color:var(--on-dark-muted)}
+.pl-unlock .btn{justify-content:center}
+.pl-unlock-st{grid-column:1/-1;color:var(--warning-on-dark);font-size:var(--fs-caption)}
+.pl-unlock-st:empty{display:none}
+@media (max-width:900px){ .pl-unlock{grid-template-columns:auto minmax(var(--s-0),1fr)} .pl-unlock .inp,.pl-unlock .btn{grid-column:1/-1} .pl-unlock .linkbtn{grid-column:1/-1;justify-self:start} }
+.gl-lock{display:flex;gap:var(--s-2);align-items:center;margin:var(--s-0) var(--s-0) var(--s-2)}
+.gl-lock svg{width:var(--s-4);height:var(--s-4);flex:none;color:var(--warning)}
 .cfg-st{min-height:var(--s-4)}
 .pp-band{border-radius:var(--r-3);padding:var(--s-1) var(--s-4) var(--s-3)}
 .pp-band .dr-steps{margin-top:var(--s-3)}
