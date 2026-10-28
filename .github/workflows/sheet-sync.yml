@@ -1,0 +1,58 @@
+name: Google Sheet sync
+
+# Every 15 minutes (07:30-23:30 IST) this reads the one published tab of the team's shared Google Sheet and, when
+# the data changed, commits ems/data.js and starts "Build dashboards" (build, QA, browser QA, publish). A broken tab
+# (missing columns, no rows, most rows gone) is never published; the run fails and says why, without naming any
+# company (Actions logs of a public repo are public). Nothing runs until the repository secret EMS_SHEET_URL holds
+# the tab's "Publish to web" .xlsx link (see docs/STANDARDS.md, "Google Sheet").
+on:
+  schedule:
+    - cron: "*/15 2-17 * * *"
+  workflow_dispatch:
+    inputs:
+      force:
+        description: "Publish even if most companies disappeared from the sheet"
+        type: boolean
+        default: false
+
+permissions:
+  contents: write
+  actions: write
+
+concurrency:
+  group: sheet-sync
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      EMS_SHEET_URL: ${{ secrets.EMS_SHEET_URL }}
+    steps:
+      - name: Check the sheet is connected
+        id: cfg
+        run: |
+          if [ -z "$EMS_SHEET_URL" ]; then echo "EMS_SHEET_URL is not set yet; nothing to do."; echo "on=false" >> "$GITHUB_OUTPUT"; else echo "on=true" >> "$GITHUB_OUTPUT"; fi
+
+      - uses: actions/checkout@v4
+        if: steps.cfg.outputs.on == 'true'
+
+      - name: Read the published tab
+        if: steps.cfg.outputs.on == 'true'
+        id: sync
+        shell: pwsh
+        run: ./scripts/sheet-sync.ps1 -Source $env:EMS_SHEET_URL -Out ems/data.js -Force:$${{ inputs.force == true }}
+
+      - name: Commit and start the build
+        if: steps.cfg.outputs.on == 'true' && steps.sync.outputs.changed == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          git config user.name "sheet-bot"
+          git config user.email "sheet-bot@users.noreply.github.com"
+          git add ems/data.js
+          git commit -m "EMS data sync"
+          ok=0; for i in 1 2 3; do if git pull --rebase -X theirs origin main && git push; then ok=1; break; fi; sleep 10; done
+          [ "$ok" = 1 ] || exit 1
+          gh workflow run build.yml --ref main

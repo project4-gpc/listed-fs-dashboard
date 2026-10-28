@@ -51,5 +51,19 @@ Write-Output "6. Nothing confidential in public metadata"
 $issueTitle = Txt 'kit/app.js'
 if($issueTitle -match 'title=\$\{encodeURIComponent\(`Diligence: \$\{'){ Fail "diligence issue title contains the company name" } else { Pass "diligence issue titles carry no company name" }
 
+Write-Output "7. Google Sheet converter reproduces the synthetic fixture exactly and reads only the named tab"
+# tools/fixtures/sheet-sync-fixture.xlsx is made up (no real companies): escaping, non-ASCII text, rounding edges,
+# booleans, text in number cells, a title row above the headers, and a second tab that must never be read.
+$fxOut = Join-Path ([IO.Path]::GetTempPath()) ('fx_' + [guid]::NewGuid().ToString('N') + '.js')
+$fxLog = & (Join-Path $root 'scripts/sheet-sync.ps1') -Source (Join-Path $root 'tools/fixtures/sheet-sync-fixture.xlsx') -Out $fxOut 2>&1 | Out-String
+if(-not (Test-Path $fxOut)){ Fail "converter wrote nothing for the fixture: $($fxLog.Trim())" }
+else {
+  $want = (Txt 'tools/fixtures/sheet-sync-expected.js') -split "`n" | Where-Object { $_ -like 'window.RAW_BASE = *' } | Select-Object -First 1
+  $got = [IO.File]::ReadAllText($fxOut, [Text.Encoding]::UTF8) -split "`n" | Where-Object { $_ -like 'window.RAW_BASE = *' } | Select-Object -First 1
+  if($got -ceq $want.TrimEnd("`r")){ Pass "fixture converted byte-identically ($($PSVersionTable.PSVersion))" } else { Fail "fixture output differs from tools/fixtures/sheet-sync-expected.js`n    got:  $got" }
+  if([IO.File]::ReadAllText($fxOut, [Text.Encoding]::UTF8) -match 'SECRET'){ Fail "converter read a tab other than the named one" } else { Pass "only the named tab was read" }
+  Remove-Item $fxOut -ErrorAction SilentlyContinue
+}
+
 Write-Output ""
 if($fail){ Write-Output "QA FAILED: $fail failure(s), $warn warning(s)"; exit 1 } else { Write-Output "QA PASSED ($warn warning(s))" }

@@ -33,6 +33,12 @@ A new dashboard is one adapter file plus its data files; the shell, pages, chart
 - Starting stages come from the data only (shortlisted, then screened via the adapter's `pipeline.seed`); nothing else is pre-filled. The design preview (`#/dev/pipeline-sample`) uses made-up sample companies, never real names with invented activity.
 - Records are keyed by company name; merges keep the newer record per company and the union of histories, so concurrent edits to different companies are never lost. Export / import of a JSON backup is in the Storage dialog.
 
+## Google Sheet (EMS data)
+- The EMS dashboard can read the team's shared Google Sheet instead of a workbook on one PC. Only the tab "Consol Target Outreach List" is read. It is published with Google Sheets' File → Share → Publish to web as Microsoft Excel (.xlsx) (that tab only), and the link is stored as the repository secret `EMS_SHEET_URL`, never in the code.
+- `.github/workflows/sheet-sync.yml` runs every 15 minutes (07:30–23:30 IST) and on demand. `scripts/sheet-sync.ps1` converts the tab to `ems/data.js` with the same column rules and rounding (3 decimals) as before, commits "EMS data sync" only when the data changed (plus one check-in a day so the dashboard shows the sheet is still being read), and starts "Build dashboards". It refuses to publish a tab with missing columns, no rows or fewer than half the previous companies (run the workflow with "force" to override). Logs name rows and columns, never companies or figures.
+- `qa.ps1` converts a synthetic workbook (`tools/fixtures/`, made-up companies) on every build and requires a byte-identical result, so the converter behaves the same under Windows PowerShell 5.1 and PowerShell 7. On today's workbook it reproduces the existing `ems/data.js` byte for byte.
+- While the secret is unset the workflow does nothing and the hourly job on the analyst's PC stays the source. When the sheet is connected that job is switched off, so there is only ever one writer.
+
 ## Brand
 Source: `brand/brand.json` (logo pixels, website, decks; no brand guide was supplied).
 Primary `#010039`, secondary `#002060`, accent `#97A8C1`; Martel for display headings, Heebo for body and every number (tabular digits).

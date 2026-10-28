@@ -41,13 +41,14 @@ function build(src, opts){
   // duplicate names are a data-quality issue worth surfacing
   const seen={}; companies.forEach(c=>{ const k=c.name.toLowerCase(); if(seen[k]) { c.dq.push({level:"warn",text:"Duplicate company name in the sheet."}); seen[k].dq.push({level:"warn",text:"Duplicate company name in the sheet."}); } else seen[k]=c; });
 
-  const asofStr = META.asof || null;
+  const asofStr = META.asof || null, gsheet = META.source==="google-sheet", tab = META.sheet||"Consol Target Outreach List";
   return {
     key:"ems",
     product:"EMS Target Screener",
     subtitle:"EMS & industrial tech target outreach · FY25 · unlisted",
     asof: asofStr, asofDate: K.parseAsof(asofStr), staleAfterHours: 26,
-    asofNote:`Synced from “${META.sheet||"Consol Target Outreach List"}” of ${META.file||"the workbook"}${META.modified?` (saved ${META.modified})`:""}`,
+    asofNote: gsheet ? `Synced from the “${tab}” tab of the team's Google Sheet; checked ${asofStr||"n/a"}${META.modified?`, data last changed ${META.modified}`:""}`
+      : `Synced from “${tab}” of ${META.file||"the workbook"}${META.modified?` (saved ${META.modified})`:""}`,
     failed:[],
     repo:"project4-gpc/listed-fs-dashboard", shortlistFile:"ems/shortlist.js",
     shortlistMeta: SL,
@@ -127,7 +128,8 @@ function build(src, opts){
     company:{ kpis:["r","e","em","p","pm","conv"], peers:["r","em","pm"], fin:false, pnl:true, hold:false, control:null, revMix:false },
     methodology:[
       {h:"Source and refresh",p:[
-        `Every figure comes from the “${META.sheet||"Consol Target Outreach List"}” sheet of the EMS Target Outreach workbook; no other sheet is read. An hourly job on the analyst's machine (8 AM–10 PM) checks whether the workbook was saved since the last sync and, if so, regenerates ems/data.js and pushes it to the repo; the dashboard is then rebuilt.`,
+        gsheet ? `Every figure comes from the “${tab}” tab of the team's shared Google Sheet; no other tab is read. Every 15 minutes (7:30 AM–11:30 PM IST) a cloud job reads that tab; when the data changed it regenerates ems/data.js, runs the checks and republishes the dashboard, and once a day it records that the sheet was checked. A tab with missing columns, no rows or most rows gone is never published.`
+          : `Every figure comes from the “${tab}” sheet of the EMS Target Outreach workbook; no other sheet is read. An hourly job on the analyst's machine (8 AM–10 PM) checks whether the workbook was saved since the last sync and, if so, regenerates ems/data.js and pushes it to the repo; the dashboard is then rebuilt.`,
         "Revenue, EBITDA and net profit are FY25, ₹ crore, exactly as entered. Segment and “Whether evaluated?” are taken as entered."]},
       {h:"Derived measures",p:["EBITDA margin = EBITDA ÷ revenue. Net margin = net profit ÷ revenue. Conversion = net profit ÷ EBITDA, only where EBITDA is positive.","Segment medians are medians across companies in the segment, so one small outlier does not swing them."]},
       {h:"Snapshots and changes",p:["Each sync is a commit in the repo. The Overview compares the current sheet with the previous sync: companies added or removed, figures changed, evaluation status and segment changes."]}

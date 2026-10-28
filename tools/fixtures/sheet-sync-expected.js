@@ -1,0 +1,3 @@
+// Generated from the 'Consol Target Outreach List' sheet only. Regenerated on each sync; do not edit by hand.
+window.DATA_META = {"asof":"28 Oct 2026, 16:27","file":"sheet-sync-fixture.xlsx","modified":"28 Oct 2026, 16:27","sheet":"Consol Target Outreach List","source":"file"};
+window.RAW_BASE = [{"n":"Alpha \u0026 Sons Pvt. Ltd.","seg":"Power \u0026 Fluid Equipment","d":"Makes valves, pumps \u003cand\u003e seals","r":82.2,"e":8.715,"p":0,"ev":true},{"n":"O\u0027Brien Components","seg":"Unclassified","d":"Wound components and transformers","r":31,"e":1234567.891,"p":0.123,"ev":false},{"n":"Zeta \"Quote\" Ltd","seg":"Electronics Design / ODM","d":"D\u0026A heavy, sub-₹100 cr – café Ünit","r":null,"e":2.001,"p":15.754,"ev":true}];
