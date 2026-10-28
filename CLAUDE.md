@@ -44,7 +44,8 @@ Claude Code, or anything else. The full standards are in `docs/STANDARDS.md`; re
   Styles: `kit/base.css`, `kit/ui.css`. Pipeline page: `kit/pipeline*.js`, `kit/pipeline.css`.
 
 ## Making a change from a Claude chat (the edit kit)
-The GitHub key is the project file `gpc-github-key.txt`; the edit kit finds it by itself.
+The GitHub key is the project file `gpc-github-key.txt`; the edit kit finds it by itself. If it reports that no key was
+found, locate that file and run the command with `GPC_KEY` set from the file's contents, without ever printing them.
 1. Get the code: `git clone https://github.com/project4-gpc/listed-fs-dashboard.git dash && cd dash`
    (if `dash` already exists in this chat: `cd dash && git checkout -q main && git pull -q`).
 2. `bash tools/edit/edit.sh start`

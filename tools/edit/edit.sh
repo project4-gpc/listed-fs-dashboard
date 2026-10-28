@@ -47,6 +47,7 @@ push(){ # git push without GitHub's chatter; shows git's output only when the pu
   local out
   if out="$(g push -q "$@" 2>&1)"; then return 0; fi
   echo "$out" | grep -v '^remote: *$' >&2
+  [ -n "$KEY" ] || echo "No GitHub key found: the project needs the file gpc-github-key.txt (see CLAUDE.md)." >&2
   return 1
 }
 
@@ -198,7 +199,7 @@ cmd_undo(){
 
 cmd_list(){
   g fetch -q origin main
-  TZ=UTC git log origin/main -n 20 --date=format-local:'%d %b %Y %H:%M' --format='%ad UTC  %s' --grep='^Dashboard edit ' --grep='^Undo dashboard edit '
+  TZ=UTC git log --first-parent origin/main -n 20 --date=format-local:'%d %b %Y %H:%M' --format='%ad UTC  %s' --grep='^Dashboard edit ' --grep='^Undo dashboard edit '
 }
 
 case "${1:-}" in
