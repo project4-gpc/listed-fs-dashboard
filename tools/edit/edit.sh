@@ -151,7 +151,7 @@ cmd_refresh(){
   local id; id="$(cur_id)"
   [ -z "$(git status --porcelain)" ] || die "submit or discard the current changes first"
   g fetch -q origin main
-  if ! git rebase -q origin/main; then
+  if ! git "${BOT[@]}" rebase -q origin/main; then
     git rebase --abort 2>/dev/null || true
     die "the edit overlaps newer changes to the same lines; discard it, start again and redo the change"
   fi
