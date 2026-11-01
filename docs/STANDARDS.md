@@ -35,6 +35,7 @@ A new dashboard is one adapter file plus its data files; the shell, pages, chart
 
 ## EMS data source
 - The EMS dashboard's `ems/data.js` is written by a script on the analyst's own PC (reads the local workbook's "Consol Target Outreach List" tab, checks hourly and on save, pushes `ems/data.js` only when the data actually changed). That machine is the sole writer; there is no scheduled GitHub Actions sync pulling from elsewhere.
+- Besides the figures, each row may carry three optional text fields, written only when present: `nt` (the sheet's "Notes" column), `cm` (comments on the row's cells, Excel's threaded-comment preamble removed) and `src` ("Sourced From"). The EMS adapter flags companies with a note or comment (Note pill, "Has notes" filter and quick screen, "With notes" KPI, note changes in "what changed") and lists all three, word for word, under "Things to know" on the company page. They are text only: figures quoted in them never enter a metric. The reference converter does not emit them.
 - `scripts/sheet-sync.ps1` remains in the repo as the reference converter (column rules, 3-decimal rounding, `&`/`'`/`<`/`>` escaping) and is still exercised by `qa.ps1` against a synthetic fixture (`tools/fixtures/`, made-up companies) on every build, requiring a byte-identical result so the converter logic stays verified under both Windows PowerShell 5.1 and PowerShell 7 — this is a parity check only, not a live data path.
 
 ## Team edits (shared Claude project)

@@ -1,5 +1,6 @@
 /* EMS target outreach — adapter. Turns ems/data.js (generated from the "Consol Target Outreach List" sheet)
-   and ems/shortlist.js into the kit MODEL. Unlisted companies: no market, ownership or control data. */
+   and ems/shortlist.js into the kit MODEL. Unlisted companies: no market, ownership or control data.
+   Optional row fields from the sheet: nt (Notes column), cm (cell comments), src (Sourced From); shown as "Things to know". */
 (function(){
 const K = window.Kit;
 const TOP = 7; // largest segments get their own colour; the rest share the muted colour
@@ -20,6 +21,12 @@ function build(src, opts){
       pm: r.r>0 && r.p!=null ? r.p/r.r*100 : null,
       conv: r.e>0 && r.p!=null ? r.p/r.e*100 : null };
     const flags=[], dq=[];
+    // the team's notes and cell comments are flagged first; the source only appears on the company page
+    const note = [r.nt].concat(r.cm||[]).filter(Boolean).join(" · "), points = [];
+    if(r.nt) points.push({label:"Note",tone:"brand",text:r.nt});
+    (r.cm||[]).forEach(t=>points.push({label:"Comment",tone:"info",text:t}));
+    if(r.src) points.push({label:"Source",tone:"neu",text:`Sourced from ${r.src}`});
+    if(note) flags.push({key:"note",label:"Note",tone:"brand",tip:note});
     if(r.ev) flags.push({key:"evaluated",label:"Evaluated",tone:"info",tip:"“Whether evaluated?” is Yes in the sheet."});
     if(r.p!=null&&r.p<0) flags.push({key:"loss",label:"Loss-making",tone:"warn",tip:"FY25 net profit below zero."});
     if(r.e!=null&&r.e<=0) flags.push({key:"ebitdaneg",label:"EBITDA ≤ 0",tone:"warn",tip:"FY25 EBITDA zero or negative."});
@@ -32,7 +39,7 @@ function build(src, opts){
     const notes = SL.notes && SL.notes[r.n] || {};
     return { id:ids[i], name:r.n, ticker:"", exchange:"Unlisted", code:"",
       groups:[{key:segKey(r.seg), pct:null}], prim:segKey(r.seg), desc:r.d||"", seg:r.seg,
-      m, nm:{}, flags, fit:false, dq, ev:!!r.ev,
+      m, nm:{}, flags, fit:false, dq, ev:!!r.ev, note, points,
       shortlisted: shortNames.has(r.n),
       verdict: notes.verdict? {label:notes.verdict, tone:notes.tone||"neu"} : null,
       thesis: notes.thesis || r.d || "", updated: notes.updated || SL.updated || null, open: notes.open||[],
@@ -49,6 +56,7 @@ function build(src, opts){
     asof: asofStr, asofDate: K.parseAsof(asofStr), staleAfterHours: 26,
     asofNote: gsheet ? `Synced from the “${tab}” tab of the team's Google Sheet; checked ${asofStr||"n/a"}${META.modified?`, data last changed ${META.modified}`:""}`
       : `Synced from “${tab}” of ${META.file||"the workbook"}${META.modified?` (saved ${META.modified})`:""}`,
+    pointsNote:`Notes, cell comments and “Sourced From” in “${tab}” · synced ${asofStr||"n/a"}`,
     failed:[],
     repo:"project4-gpc/listed-fs-dashboard", shortlistFile:"ems/shortlist.js",
     shortlistMeta: SL,
@@ -79,10 +87,12 @@ function build(src, opts){
         {key:"nppos",label:"Net profit positive",test:c=>c.m.p>0},
         {key:"ev",label:"Evaluated",test:c=>c.ev},
         {key:"notev",label:"Not yet evaluated",test:c=>!c.ev},
-        {key:"short",label:"Shortlisted",test:c=>c.shortlisted}
+        {key:"short",label:"Shortlisted",test:c=>c.shortlisted},
+        {key:"notes",label:"Has notes",test:c=>!!c.note}
       ]
     },
     presets:[
+      {key:"notes",label:"Has notes",desc:"A note or cell comment in the sheet",state:{t:["notes"]}},
       {key:"profit",label:"Profitable",desc:"EBITDA and net profit both positive",state:{t:["ebitdapos","nppos"],s:["-em"]}},
       {key:"scale",label:"₹50 cr+ revenue",desc:"FY25 revenue at least ₹50 cr",state:{r:{r:[50,null]}}},
       {key:"fresh",label:"Not yet evaluated",desc:"“Whether evaluated?” is No",state:{t:["notev"]}}
@@ -99,6 +109,7 @@ function build(src, opts){
       {key:"profitable",label:"Profitable",fmt:"int",value:cs=>cs.filter(c=>c.m.e>0&&c.m.p>0).length,ctx:()=>"EBITDA and net profit > 0",link:{t:["ebitdapos","nppos"]}},
       {key:"evaluated",label:"Evaluated",fmt:"int",value:cs=>cs.filter(c=>c.ev).length,ctx:cs=>`${cs.filter(c=>!c.ev).length} not yet evaluated`,link:{t:["ev"]}},
       {key:"short",label:"Shortlist",fmt:"int",value:cs=>cs.filter(c=>c.shortlisted).length,ctx:()=>"team list in the repo",link:{t:["short"]}},
+      {key:"notes",label:"With notes",fmt:"int",value:cs=>cs.filter(c=>c.note).length,ctx:()=>"notes and comments in the sheet",link:{t:["notes"]}},
       {key:"rev",label:"Median revenue",fmt:"cr",metric:"r",value:cs=>K.median(cs.map(c=>c.m.r)),ctx:cs=>`₹${Math.round(cs.reduce((a,c)=>a+(c.m.r||0),0)).toLocaleString("en-IN")} cr combined`},
       {key:"em",label:"Median EBITDA margin",fmt:"chg",value:cs=>K.median(cs.map(c=>c.m.em)),ctx:()=>"FY25"},
       {key:"pm",label:"Median net margin",fmt:"chg",value:cs=>K.median(cs.map(c=>c.m.pm)),ctx:()=>"FY25"}
@@ -130,11 +141,12 @@ function build(src, opts){
       {h:"Source and refresh",p:[
         gsheet ? `Every figure comes from the “${tab}” tab of the team's shared Google Sheet; no other tab is read. Every 15 minutes (7:30 AM–11:30 PM IST) a cloud job reads that tab; when the data changed it regenerates ems/data.js, runs the checks and republishes the dashboard, and once a day it records that the sheet was checked. A tab with missing columns, no rows or most rows gone is never published.`
           : `Every figure comes from the “${tab}” sheet of the EMS Target Outreach workbook; no other sheet is read. An hourly job on the analyst's machine (8 AM–10 PM) checks whether the workbook was saved since the last sync and, if so, regenerates ems/data.js and pushes it to the repo; the dashboard is then rebuilt.`,
-        "Revenue, EBITDA and net profit are FY25, ₹ crore, exactly as entered. Segment and “Whether evaluated?” are taken as entered."]},
+        "Revenue, EBITDA and net profit are FY25, ₹ crore, exactly as entered. Segment and “Whether evaluated?” are taken as entered.",
+        "The “Notes” column and any comments on a company's cells are flagged with a Note pill and listed, word for word, under “Things to know” on the company page, with “Sourced From”. Figures quoted in notes or comments (for example FY26) are shown as text only and never enter a metric."]},
       {h:"Derived measures",p:["EBITDA margin = EBITDA ÷ revenue. Net margin = net profit ÷ revenue. Conversion = net profit ÷ EBITDA, only where EBITDA is positive.","Segment medians are medians across companies in the segment, so one small outlier does not swing them."]},
       {h:"Snapshots and changes",p:["Each sync is a commit in the repo. The Overview compares the current sheet with the previous sync: companies added or removed, figures changed, evaluation status and segment changes."]}
     ],
-    changeRules:{any:[{k:"r",label:"Revenue"},{k:"e",label:"EBITDA"},{k:"p",label:"Net profit"}], text:[{k:"seg",label:"Segment"},{k:"desc",label:"Description"}], flags:["evaluated","loss","ebitdaneg"]},
+    changeRules:{any:[{k:"r",label:"Revenue"},{k:"e",label:"EBITDA"},{k:"p",label:"Net profit"}], text:[{k:"seg",label:"Segment"},{k:"desc",label:"Description"},{k:"note",label:"Notes"}], flags:["evaluated","loss","ebitdaneg"]},
     dqGlobal:[],
     sourceLine:`${META.file||"Workbook"} · ${META.sheet||""} · synced ${asofStr||"n/a"}`
   };

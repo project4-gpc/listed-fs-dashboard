@@ -23,10 +23,12 @@ for (const d of dashboards) {
   console.log(`${d.key}: ${r.pages} pages, ${r.companies} companies, ${r.cellsChecked} cells checked, ${r.failures.length} failures`);
   r.failures.slice(0, 20).forEach(f => console.log("  - " + f));
   if (!r.ok || errors.length) { failed++; errors.forEach(e => console.log("  page error: " + e)); }
-  // 2. Phone width: no horizontal scroll
+  // 2. Phone width: no horizontal scroll. The app re-renders 200 ms after a resize, so give the page up to
+  //    3 s to settle before measuring; measuring at once caught the 1440px layout mid-change and failed at random.
   await page.setViewportSize({ width: 390, height: 844 });
   for (const route of ["overview", "screener", "shortlist"]) {
     await page.goto(url + "#/" + route);
+    await page.waitForFunction(() => document.documentElement.scrollWidth - innerWidth <= 1, null, { timeout: 3000 }).catch(() => {});
     const over = await page.evaluate(() => document.documentElement.scrollWidth - innerWidth);
     if (over > 1) { console.log(`  - ${route} overflows by ${over}px at 390px`); failed++; }
   }
