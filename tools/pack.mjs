@@ -14,12 +14,19 @@ const browser = await chromium.launch();
 let failed = 0;
 for (const d of dashboards) {
   const url = pathToFileURL(path.join(root, d.file)).href;
-  // 1. QA: every page and company renders, numbers match the model
-  const page = await browser.newPage({ viewport: { width: 1440, height: 900 } });
-  const errors = [];
-  page.on("pageerror", e => errors.push(String(e)));
-  await page.goto(url + "#/overview");
-  const r = await page.evaluate(qa);
+  // 1. QA: every page and company renders, numbers match the model. A run takes about 2 minutes, but in CI it has
+  //    sometimes stalled until the job timed out, so each run gets 5 minutes and, if it stalls, one more on a fresh page.
+  let page, errors, r;
+  for (let attempt = 1; attempt <= 2 && !r; attempt++) {
+    page = await browser.newPage({ viewport: { width: 1440, height: 900 } });
+    errors = [];
+    page.on("pageerror", e => errors.push(String(e)));
+    await page.goto(url + "#/overview");
+    const run = page.evaluate(qa); run.catch(() => {});
+    let timer; r = await Promise.race([run, new Promise(res => { timer = setTimeout(res, 300000); })]); clearTimeout(timer);
+    if (!r) { console.log(`  - ${d.key}: browser QA stalled at #${page.url().split("#")[1] || ""} (attempt ${attempt} of 2)`); await page.close().catch(() => {}); }
+  }
+  if (!r) { failed++; continue; }
   console.log(`${d.key}: ${r.pages} pages, ${r.companies} companies, ${r.cellsChecked} cells checked, ${r.failures.length} failures`);
   r.failures.slice(0, 20).forEach(f => console.log("  - " + f));
   if (!r.ok || errors.length) { failed++; errors.forEach(e => console.log("  page error: " + e)); }
