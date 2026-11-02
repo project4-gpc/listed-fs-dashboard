@@ -128,7 +128,7 @@ a.kpi:hover{background:var(--hover-bg)}
 .chg li{display:grid;grid-template-columns:auto minmax(var(--s-0),1fr) auto;gap:var(--s-3);align-items:baseline;padding:var(--s-2) var(--s-0);border-bottom:var(--bw) solid var(--border);font-size:var(--fs-small)}
 .chg li:last-child{border-bottom:0}
 .chg .what{min-width:var(--s-0)}
-.chg .v{font-family:var(--font-num);white-space:nowrap}
+.chg .v{font-family:var(--font-num);white-space:nowrap;max-width:calc(var(--s-16) * 3);overflow:hidden;text-overflow:ellipsis}
 .empty{padding:var(--s-8) var(--s-4);text-align:center;color:var(--text-muted);font-size:var(--fs-small)}
 
 /* ---------- table ---------- */
