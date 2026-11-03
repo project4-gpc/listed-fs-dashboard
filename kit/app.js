@@ -508,13 +508,16 @@ function colsFor(st){ if(st.cols&&st.cols.length) return st.cols.filter(k=>MET[k
 function colDef(k){ return MET[k]||TEXT[k]; }
 function headerTip(k){ const m=colDef(k); return [m.label||k, m.def?`Definition: ${m.def}`:"", m.formula&&m.formula!=="—"?`Formula: ${m.formula}`:"", m.source?`Source: ${m.source}`:"", `As of: ${m.asof||M.asof||"n/a"}`, (MET[k]&&MET[k].fmt!=="spark")?"Click to sort · Shift+click to add a sort key":""].filter(Boolean).join("\n"); }
 function heatClass(k, v, stats){ if(v==null||!stats[k]) return ""; const {q1,q3}=stats[k], b=(MET[k]||{}).better; if(!b) return ""; const good=b==="high"?v>=q3:v<=q1, bad=b==="high"?v<=q1:v>=q3; return good?"heat-p1":bad?"heat-n1":""; }
+// hiding the filter panel gives the table the full width; a per-device preference, like the collapsed sidebar
+let fpHide=(()=>{ try{ return localStorage.getItem("gpc-filters-hidden")==="1"; }catch(e){ return false; } })();
 PAGES.screener = (main, st, arg, same)=>{
   if(!same || !main.querySelector("#res")){
     main.innerHTML=`<section class="hero" style="padding:var(--s-5) var(--hero-pad)"><div class="hero-top"><div><span class="eyebrow">Screener · ${M.companies.length} companies · as of ${esc(M.asof||"n/a")}</span><h1 class="hero-h" style="font-size:var(--fs-display)">Find the names that fit</h1><p class="hero-sub">Every filter, sort, column and selection is saved in the link, so any view can be bookmarked or sent.</p></div>
-      <div class="hero-acts"><button class="btn" type="button" id="chTog">${icon("chart")}${st.ch?"Hide chart":"Show chart"}</button></div></div><div id="chips"></div></section>
-      <div class="scr-layout"><aside class="card" aria-label="Filters"><details class="fold" open><summary>Filters ${icon("down","style='width:var(--icon)'")}</summary><div class="fpanel" id="fp"></div></details></aside><section class="card flush" id="res"></section></div>`;
+      <div class="hero-acts"><button class="btn" type="button" id="fpTog" aria-controls="fp" aria-expanded="${!fpHide}">${icon("screener")}${fpHide?"Show filters":"Hide filters"}</button><button class="btn" type="button" id="chTog">${icon("chart")}${st.ch?"Hide chart":"Show chart"}</button></div></div><div id="chips"></div></section>
+      <div class="scr-layout${fpHide?" nofp":""}"><aside class="card" aria-label="Filters"><details class="fold" open><summary>Filters ${icon("down","style='width:var(--icon)'")}</summary><div class="fpanel" id="fp"></div></details></aside><section class="card flush" id="res"></section></div>`;
     paintFilters(main.querySelector("#fp"), st);
     main.querySelector("#chTog").onclick=()=>{ const s=route().st; go("screener","",withState(s,{ch:!s.ch}),true); };
+    main.querySelector("#fpTog").onclick=()=>{ fpHide=!fpHide; try{ localStorage.setItem("gpc-filters-hidden",fpHide?"1":"0"); }catch(e){} lastKey=""; render(); };
   } else syncFilters(main.querySelector("#fp"), st);
   const tg=main.querySelector("#chTog"); if(tg) tg.innerHTML=`${icon("chart")}${st.ch?"Hide chart":"Show chart"}`;
   const ch=main.querySelector("#chips"); ch.innerHTML=chips(st); bindChips(ch, st, "screener", "");

@@ -185,6 +185,8 @@ table.grid-t{border-collapse:separate;border-spacing:var(--s-0);width:max-conten
 .scr-layout{display:grid;grid-template-columns:calc(var(--s-16) * 4) minmax(var(--s-0),1fr);gap:var(--s-4);align-items:start}
 .scr-layout > .card:first-child{position:sticky;top:calc(var(--header-h) + var(--s-4));max-height:calc(100vh - var(--header-h) - var(--s-8));overflow:auto}
 @media (max-width:1100px){.scr-layout{grid-template-columns:minmax(var(--s-0),1fr)}.scr-layout > .card:first-child{position:static;max-height:none}}
+.scr-layout.nofp{grid-template-columns:minmax(var(--s-0),1fr)}
+.scr-layout.nofp > aside{display:none}
 details.fold > summary{cursor:pointer;list-style:none;display:flex;justify-content:space-between;align-items:center;font-weight:var(--fw-semibold)}
 details.fold > summary::-webkit-details-marker{display:none}
 @media (min-width:1101px){ details.fold > summary{display:none} }

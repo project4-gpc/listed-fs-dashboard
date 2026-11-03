@@ -14,6 +14,9 @@ function build(src, opts){
   const segCount = {}; rows.forEach(r=>{ segCount[r.seg]=(segCount[r.seg]||0)+1; });
   const SEGS = Object.keys(segCount).sort((a,b)=>segCount[b]-segCount[a]||a.localeCompare(b));
   const segKey = s => String(SEGS.indexOf(s));
+  // each "Sourced From" value (e.g. PWC) gets a flag, a screener condition and a quick screen
+  const SRCS = [...new Set(rows.map(r=>r.src).filter(Boolean))].sort((a,b)=>a.localeCompare(b));
+  const srcKey = s => "src-"+s.toLowerCase().replace(/[^a-z0-9]+/g,"-");
 
   const companies = rows.map((r,i)=>{
     const m = { r:r.r, e:r.e, p:r.p,
@@ -21,7 +24,7 @@ function build(src, opts){
       pm: r.r>0 && r.p!=null ? r.p/r.r*100 : null,
       conv: r.e>0 && r.p!=null ? r.p/r.e*100 : null };
     const flags=[], dq=[];
-    // the team's notes and cell comments are flagged first; the source only appears on the company page
+    // the team's notes and cell comments are flagged first, the source last
     const note = [r.nt].concat(r.cm||[]).filter(Boolean).join(" · "), points = [];
     if(r.nt) points.push({label:"Note",tone:"brand",text:r.nt});
     (r.cm||[]).forEach(t=>points.push({label:"Comment",tone:"info",text:t}));
@@ -30,6 +33,7 @@ function build(src, opts){
     if(r.ev) flags.push({key:"evaluated",label:"Evaluated",tone:"info",tip:"“Whether evaluated?” is Yes in the sheet."});
     if(r.p!=null&&r.p<0) flags.push({key:"loss",label:"Loss-making",tone:"warn",tip:"FY25 net profit below zero."});
     if(r.e!=null&&r.e<=0) flags.push({key:"ebitdaneg",label:"EBITDA ≤ 0",tone:"warn",tip:"FY25 EBITDA zero or negative."});
+    if(r.src) flags.push({key:srcKey(r.src),label:r.src,tone:"neu",tip:`Sourced from ${r.src} (“Sourced From” in the sheet).`});
     ["r","e","p"].forEach(k=>{ if(r[k]==null) dq.push({level:"warn",text:`${({r:"Revenue",e:"EBITDA",p:"Net profit"})[k]} is blank in the sheet.`}); });
     if(!r.d) dq.push({level:"info",text:"Business description is blank in the sheet."});
     if(r.e!=null&&r.p!=null&&r.e>0&&r.p>r.e) dq.push({level:"warn",text:`Net profit (₹${r.p} cr) exceeds EBITDA (₹${r.e} cr): check for other income or a data-entry error.`});
@@ -39,7 +43,7 @@ function build(src, opts){
     const notes = SL.notes && SL.notes[r.n] || {};
     return { id:ids[i], name:r.n, ticker:"", exchange:"Unlisted", code:"",
       groups:[{key:segKey(r.seg), pct:null}], prim:segKey(r.seg), desc:r.d||"", seg:r.seg,
-      m, nm:{}, flags, fit:false, dq, ev:!!r.ev, note, points,
+      m, nm:{}, flags, fit:false, dq, ev:!!r.ev, note, points, src:r.src||"",
       shortlisted: shortNames.has(r.n),
       verdict: notes.verdict? {label:notes.verdict, tone:notes.tone||"neu"} : null,
       thesis: notes.thesis || r.d || "", updated: notes.updated || SL.updated || null, open: notes.open||[],
@@ -88,11 +92,13 @@ function build(src, opts){
         {key:"ev",label:"Evaluated",test:c=>c.ev},
         {key:"notev",label:"Not yet evaluated",test:c=>!c.ev},
         {key:"short",label:"Shortlisted",test:c=>c.shortlisted},
-        {key:"notes",label:"Has notes",test:c=>!!c.note}
+        {key:"notes",label:"Has notes",test:c=>!!c.note},
+        ...SRCS.map(s=>({key:srcKey(s),label:`Sourced from ${s}`,test:c=>c.src===s}))
       ]
     },
     presets:[
       {key:"notes",label:"Has notes",desc:"A note or cell comment in the sheet",state:{t:["notes"]}},
+      ...SRCS.map(s=>({key:srcKey(s),label:`Sourced from ${s}`,desc:`“Sourced From” is ${s} in the sheet`,state:{t:[srcKey(s)]}})),
       {key:"profit",label:"Profitable",desc:"EBITDA and net profit both positive",state:{t:["ebitdapos","nppos"],s:["-em"]}},
       {key:"scale",label:"₹50 cr+ revenue",desc:"FY25 revenue at least ₹50 cr",state:{r:{r:[50,null]}}},
       {key:"fresh",label:"Not yet evaluated",desc:"“Whether evaluated?” is No",state:{t:["notev"]}}
@@ -142,7 +148,7 @@ function build(src, opts){
         gsheet ? `Every figure comes from the “${tab}” tab of the team's shared Google Sheet; no other tab is read. Every 15 minutes (7:30 AM–11:30 PM IST) a cloud job reads that tab; when the data changed it regenerates ems/data.js, runs the checks and republishes the dashboard, and once a day it records that the sheet was checked. A tab with missing columns, no rows or most rows gone is never published.`
           : `Every figure comes from the “${tab}” sheet of the EMS Target Outreach workbook; no other sheet is read. An hourly job on the analyst's machine (8 AM–10 PM) checks whether the workbook was saved since the last sync and, if so, regenerates ems/data.js and pushes it to the repo; the dashboard is then rebuilt.`,
         "Revenue, EBITDA and net profit are FY25, ₹ crore, exactly as entered. Segment and “Whether evaluated?” are taken as entered.",
-        "The “Notes” column and any comments on a company's cells are flagged with a Note pill and listed, word for word, under “Things to know” on the company page, with “Sourced From”. Figures quoted in notes or comments (for example FY26) are shown as text only and never enter a metric."]},
+        "The “Notes” column and any comments on a company's cells are flagged with a Note pill and listed, word for word, under “Things to know” on the company page, with “Sourced From”. Each “Sourced From” value (for example PWC) is also a tag on the company and a screener condition and quick screen. Figures quoted in notes or comments (for example FY26) are shown as text only and never enter a metric."]},
       {h:"Derived measures",p:["EBITDA margin = EBITDA ÷ revenue. Net margin = net profit ÷ revenue. Conversion = net profit ÷ EBITDA, only where EBITDA is positive.","Segment medians are medians across companies in the segment, so one small outlier does not swing them."]},
       {h:"Snapshots and changes",p:["Each sync is a commit in the repo. The Overview compares the current sheet with the previous sync: companies added or removed, figures changed, evaluation status and segment changes."]}
     ],
