@@ -65,7 +65,7 @@ const ICON = {
   link:'<path d="M10 14a4 4 0 005.7 0l3-3a4 4 0 00-5.7-5.7l-1 1M14 10a4 4 0 00-5.7 0l-3 3a4 4 0 005.7 5.7l1-1"/>',
   cols:'<path d="M4 4h16v16H4zM10 4v16M16 4v16"/>', prev:'<path d="M15 6l-6 6 6 6"/>', next:'<path d="M9 6l6 6-6 6"/>',
   play:'<path d="M7 4l13 8-13 8z"/>', help:'<circle cx="12" cy="12" r="9"/><path d="M9.5 9a2.5 2.5 0 015 .5c0 1.7-2.5 2-2.5 3.5M12 17h.01"/>',
-  plus:'<path d="M12 5v14M5 12h14"/>', target:'<circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="3"/>',
+  plus:'<path d="M12 5v14M5 12h14"/>', fit:'<circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="3"/>', target:'<circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="3"/>',
   map:'<path d="M3 3h8v8H3zM13 3h8v5h-8zM13 10h8v11h-8zM3 13h8v8H3z"/>', chart:'<path d="M4 20V4M4 20h16M8 16l3-5 3 3 5-8"/>',
   bolt:'<path d="M13 2L4 14h7l-1 8 9-12h-7z"/>', table:'<path d="M3 5h18v14H3zM3 10h18M9 10v9"/>',
   more:'<circle cx="5" cy="12" r="1.2"/><circle cx="12" cy="12" r="1.2"/><circle cx="19" cy="12" r="1.2"/>', cloud:'<path d="M7 18h10a4 4 0 00.6-7.95A6 6 0 006.2 9.1 4.5 4.5 0 007 18z"/>',
@@ -131,7 +131,7 @@ function filtered(st, cs){
 function sortKeys(st){ return (st.s&&st.s.length?st.s:[M.views[0].cols.includes("mc")?"-mc":"-"+(M.scatter.x)]).map(s=>({k:s.replace(/^-/,""),dir:s.startsWith("-")?-1:1})); }
 function sorted(cs, st){
   const keys=sortKeys(st);
-  const val=(c,k)=> k==="name"?c.name : k==="ev"?(c.ev?1:0) : k==="stage"?PIPE.stageIndex(c) : k==="score"?totalScore(c,st) : (c.nm&&c.nm[k])?null : c.m[k];
+  const val=(c,k)=> k==="name"?c.name : k==="ev"?(c.ev?1:0) : k==="stage"?PIPE.stageIndex(c) : k==="score"?totalScore(c,st) : TEXT[k]&&TEXT[k].get?TEXT[k].get(c) : (c.nm&&c.nm[k])?null : c.m[k];
   return cs.slice().sort((a,b)=>{ for(const {k,dir} of keys){ const va=val(a,k), vb=val(b,k);
     if(typeof va==="string"||typeof vb==="string"){ const r=String(va||"").localeCompare(String(vb||"")); if(r) return dir*r; continue; }
     if(va==null&&vb==null) continue; if(va==null) return 1; if(vb==null) return -1; if(va!==vb) return dir*(va-vb); } return a.name.localeCompare(b.name); });
@@ -155,7 +155,7 @@ function shortlistFileText(){
 function addCompare(id){ const st=route().st; const c=[...new Set([...(st.c||[]),id])].slice(-5); history.replaceState(null,"",href(route().page,route().arg,withState(st,{c}))); syncNav(); toast(`Added to compare (${c.length}/5). Open Compare to see them side by side.`); }
 
 // ---------- shell ----------
-const NAV = [["overview","Overview"],["pipeline","Pipeline"],["screener","Screener"],["shortlist","Shortlist"],["compare","Compare"]];
+const NAV = [["overview","Overview"],["pipeline","Pipeline"],["screener","Screener"],...(M.industryFit?[["fit","Industry fit"]]:[]),["shortlist","Shortlist"],["compare","Compare"]];
 const NAV2 = [["dq","Data quality"],["method","Methodology"]];
 function freshness(){
   if(!M.asofDate) return {tone:"neu",label:"No as-of date"};
@@ -307,7 +307,7 @@ function render(){
   fn(main, st, arg, same);
   if(!same){ if(lastKey) { main.focus({preventScroll:true}); scrollTo({top:0}); } }
   lastKey=key;
-  document.title = `${({overview:"Overview",pipeline:"Pipeline",screener:"Screener",company:(byId.get(arg)||{}).name||"Company",shortlist:"Shortlist",compare:"Compare",dq:"Data quality",method:"Methodology",dev:"Chart gallery"})[page]||"Overview"} · ${M.product}`;
+  document.title = `${({overview:"Overview",pipeline:"Pipeline",screener:"Screener",company:(byId.get(arg)||{}).name||"Company",shortlist:"Shortlist",compare:"Compare",fit:"Industry fit",dq:"Data quality",method:"Methodology",dev:"Chart gallery"})[page]||"Overview"} · ${M.product}`;
 }
 
 // ======================================================================================
@@ -576,12 +576,13 @@ function paintTable(res, st){
       <div class="tools"><label class="lbl" for="sax">X</label><select id="sax">${M.scatter.axes.map(a=>`<option value="${a}" ${a===ax?"selected":""}>${esc(MET[a].label)}</option>`).join("")}</select><label class="lbl" for="say">Y</label><select id="say">${M.scatter.axes.map(a=>`<option value="${a}" ${a===ay?"selected":""}>${esc(MET[a].label)}</option>`).join("")}</select></div></div><div id="scrLab"></div></div>`:""}
     <div class="tscroll"><table class="grid-t" aria-rowcount="${rows.length}">
       <thead><tr class="grp"><th class="stk l" rowspan="1"></th>${spans.map(s=>`<th colspan="${s.n}" class="gstart">${esc(s.g)}</th>`).join("")}</tr>
-      <tr class="cols"><th class="stk l sortable" data-k="name"${ariaSort("name")} tabindex="0" data-tip="Company name, ticker, ${esc(M.groupLabel.toLowerCase())} and flags. Click to sort.">Company ${sortInd("name")}</th>${cols.map(k=>{ const m=colDef(k), sortable=MET[k]?MET[k].fmt!=="spark":(k==="ev"||k==="stage");
+      <tr class="cols"><th class="stk l sortable" data-k="name"${ariaSort("name")} tabindex="0" data-tip="Company name, ticker, ${esc(M.groupLabel.toLowerCase())} and flags. Click to sort.">Company ${sortInd("name")}</th>${cols.map(k=>{ const m=colDef(k), sortable=MET[k]?MET[k].fmt!=="spark":(k==="ev"||k==="stage"||!!(TEXT[k]&&TEXT[k].get));
         return `<th class="${TEXT[k]?"l":""} ${starts.has(k)?"gstart":""} ${sortable?"sortable":""}" data-k="${k}"${ariaSort(k)} ${sortable?'tabindex="0"':""} data-tip="${esc(headerTip(k))}">${esc(m.short||m.label)}${MET[k]&&unitOf(k)&&MET[k].fmt!=="spark"?` <span class="subtle">${esc(unitOf(k))}</span>`:""}${sortInd(k)}</th>`; }).join("")}</tr></thead>
       <tbody>${rows.length?rows.map(c=>`<tr data-id="${c.id}" class="${c.fit?"mandate-edge":""}">
         <td class="stk l first"><span style="display:flex;gap:var(--s-2);align-items:flex-start"><button class="iconbtn" style="height:var(--s-6);min-width:var(--s-6);padding:var(--s-0);color:${isStarred(c)?"var(--warning)":"var(--n-300)"}" data-star="${c.id}" aria-pressed="${isStarred(c)}" aria-label="${isStarred(c)?"Remove from":"Add to"} shortlist: ${esc(c.name)}">${icon("shortlist",isStarred(c)?'fill="currentColor"':"")}</button><span><a class="cname" href="${href("company",c.id,filterOnly(st))}">${esc(c.name)}</a>
           <span class="cmeta">${c.ticker?`<span>${esc(c.exchange)}: ${esc(c.ticker)}</span>`:""}${c.groups.map(g=>gpill(g.key)).join("")}${flagPills(c)}<span class="rowacts"><button class="iconbtn miniicon" type="button" data-cmp="${esc(c.id)}" aria-label="Add ${esc(c.name)} to compare" data-tip="Add to compare">${icon("plus")}</button></span></span></span></span></td>
         ${cols.map(k=>{ if(k==="desc") return `<td class="desc ${starts.has(k)?"gstart":""}">${esc(c.desc)}</td>`; if(k==="stage") return `<td class="l ${starts.has(k)?"gstart":""}">${PUI?PUI.stagePill(c):""}</td>`; if(k==="ev") return `<td class="${starts.has(k)?"gstart":""}">${c.ev?pill("Yes","pos"):pill("No","neu")}</td>`;
+          if(TEXT[k]&&TEXT[k].get){ const v=TEXT[k].get(c); return `<td class="l ${starts.has(k)?"gstart":""}">${v?(TEXT[k].tone?pill(v,TEXT[k].tone(v)):esc(v)):""}</td>`; }
           const v=c.nm&&c.nm[k]?null:c.m[k]; return `<td class="${starts.has(k)?"gstart":""} ${st.heat?heatClass(k,v,stats):""}"${st.bars&&barMax[k]?barStyle(k,v,barMax[k]):""}>${fmt(k,c.m[k],c)}</td>`; }).join("")}</tr>`).join("")
         : `<tr><td class="l" colspan="${cols.length+1}"><div class="empty">No companies match these filters. Remove a chip above or press Reset.</div></td></tr>`}</tbody></table></div>`;
   // chart panel (linked)
@@ -628,7 +629,7 @@ function colChooser(btn, st){
 function exportRows(st){
   const cols=colsFor(st).filter(k=>!MET[k]||MET[k].fmt!=="spark"), rows=sorted(filtered(st),st);
   const head=["Company","Ticker",M.groupLabel].concat(cols.map(k=>{ const m=colDef(k); return m.label+(MET[k]&&unitOf(k)?` (${unitOf(k).replace("₹","INR")})`:""); })).concat(["Flags","Shortlisted"]);
-  const body=rows.map(c=>[c.name,c.code||c.ticker,c.groups.map(g=>G[g.key]?.label).join("; ")].concat(cols.map(k=>k==="desc"?c.desc:k==="stage"?PIPE.stages[PIPE.stageIndex(c)].label:k==="ev"?(c.ev?"Yes":"No"):(c.nm&&c.nm[k])?"n.m.":(c.m[k]==null?"":+c.m[k].toFixed(4)))).concat([c.flags.map(f=>f.label).join("; "), c.shortlisted?"Yes":""]));
+  const body=rows.map(c=>[c.name,c.code||c.ticker,c.groups.map(g=>G[g.key]?.label).join("; ")].concat(cols.map(k=>k==="desc"?c.desc:k==="stage"?PIPE.stages[PIPE.stageIndex(c)].label:k==="ev"?(c.ev?"Yes":"No"):TEXT[k]&&TEXT[k].get?TEXT[k].get(c):(c.nm&&c.nm[k])?"n.m.":(c.m[k]==null?"":+c.m[k].toFixed(4)))).concat([c.flags.map(f=>f.label).join("; "), c.shortlisted?"Yes":""]));
   return [head].concat(body);
 }
 function download(blob, name){ const a=document.createElement("a"); a.href=URL.createObjectURL(blob); a.download=name; document.body.appendChild(a); a.click(); setTimeout(()=>{ URL.revokeObjectURL(a.href); a.remove(); },500); }
@@ -839,6 +840,29 @@ PAGES.compare = (main, st)=>{
   if(CRIT.length) C.radar(main.querySelector("#cr"),{axes:radarAxes(),series:cs.map((c,j)=>({key:c.id,label:shortName(c.name),color:C.vizVar(j),values:c.sc,fill:j===0,shape:C.shapeOf(j)})),aria:"Score shapes of the compared companies"});
   legendIsolate(main.querySelector("#pcL"),()=>[main.querySelector(".pc"),main.querySelector("#cr .radar")].filter(Boolean),ser.map(s=>({key:s.key,label:s.label,color:s.color,shape:s.shape})));
 };
+
+// ======================================================================================
+// Industry fit: the team's per-industry strategic-fit sheet, shown as entered, with company counts from the list
+// ======================================================================================
+PAGES.fit = (main, st)=>{
+  const F=M.industryFit; if(!F){ PAGES.overview(main, st); return; }
+  const scr=key=>href("screener","",{...filterOnly(st),g:[key]});
+  const rated=F.rating>=0, inSheet=F.rows.reduce((a,r)=>a+r.n,0);
+  const tiles=[[ "Industries", F.rows.length, `in “${F.sheet}”` ], [ "Companies covered", inSheet, `of ${M.companies.length} on the outreach list` ],
+    ...(rated?F.ratings.map(v=>[`Fit: ${v}`, M.companies.filter(c=>c.ifit===v).length, `companies · ${F.rows.filter(r=>r.cells[F.rating]===v).length} industries`, v]):[])];
+  const cell=(r,i)=>{ const t=r.cells[i]; if(!t) return `<td class="l muted">–</td>`;
+    return i===F.rating?`<td class="l">${pill(t,F.tone(t))}</td>`:`<td class="l" style="white-space:normal;min-width:calc(var(--s-16) * 3);max-width:calc(var(--s-16) * 6)">${esc(t)}</td>`; };
+  main.innerHTML=`<div class="ph"><div><span class="eyebrow">Industry fit · ${esc(F.sheet)}</span><h1>Strategic fit by industry</h1><p>The team's view of each industry on the outreach list, as entered in the workbook. Company counts come from the list; click an industry to open its companies in the screener.</p></div></div>
+    <section class="kpis">${tiles.map(([l,v,ctx,rv])=>{ const inner=`<span class="eyebrow">${esc(l)}</span><span class="kpi-v">${v}</span><span class="ctx">${esc(ctx)}</span>`;
+      return rv?`<a class="kpi" href="${href("screener","",{...filterOnly(st),t:[fitKey(rv)]})}">${inner}</a>`:`<div class="kpi">${inner}</div>`; }).join("")}</section>
+    <section class="card flush" style="margin-top:var(--s-4)"><div class="tscroll"><table class="grid-t"><thead><tr class="cols"><th class="l stk">Industry</th><th>Companies</th>${F.cols.map(c=>`<th class="l">${esc(c.label||"")}</th>`).join("")}</tr></thead><tbody>
+      ${F.rows.map(r=>`<tr><td class="l stk first" style="white-space:normal;min-width:calc(var(--s-16) * 3)">${r.key?`<a class="cname" href="${scr(r.key)}">${esc(r.label)}</a>`:esc(r.label)}</td><td class="num">${r.key?r.n:"–"}</td>${F.cols.map((c,i)=>cell(r,i)).join("")}</tr>`).join("")}
+    </tbody></table></div></section>
+    ${F.missing.length||F.extra.length?`<section class="card" style="margin-top:var(--s-4)"><h2>Not matched</h2><ul class="dq" style="margin-top:var(--s-2)">
+      ${F.missing.map(s=>`<li>${pill("Not in the fit sheet","warn")}<span>${esc(s)} (${(M.groups.find(g=>g.label===s)||{}).n||0} companies)</span></li>`).join("")}
+      ${F.extra.map(s=>`<li>${pill("No companies","info")}<span>${esc(s)}: no company on the outreach list has this segment.</span></li>`).join("")}</ul></section>`:""}`;
+};
+const fitKey = v => "fit-"+v.toLowerCase().replace(/[^a-z0-9]+/g,"-");
 
 // ======================================================================================
 // Data quality, Methodology
