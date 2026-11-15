@@ -285,10 +285,11 @@ function swarm(host, o){
     T.t.forEach(v=>{ if(v<T.a-1e-9||v>T.b+1e-9) return; s+=`<text class="sw-t" x="${sx(v)}" y="${y0+rowH-2}" text-anchor="middle">${esc(row.tick(v))}</text>`; });
     if(row.med!=null) s+=`<line class="med" x1="${sx(row.med)}" x2="${sx(row.med)}" y1="${cy-band}" y2="${cy+band}"/>`;
     if(row.gmed!=null) s+=`<line class="sw-gm" x1="${sx(row.gmed)}" x2="${sx(row.gmed)}" y1="${cy-band+4}" y2="${cy+band-4}" style="stroke:${row.gcolor||"var(--viz-1)"}"/>`;
-    // dodge
+    // dodge: dots are placed left to right (sorted by value), so only the trailing ones within one gap can collide
     const placed=[], r=3.4, gap=2*r+.6; const ord=items.slice().sort((a,b)=>(a.kind==="self")-(b.kind==="self")||a.v-b.v);
+    const hits=(x,cand)=>{ for(let j=placed.length-1;j>=0&&x-placed[j].x<gap;j--) if(Math.abs(placed[j].y-cand)<gap) return true; return false; };
     ord.forEach(it=>{ const x=sx(it.v); let dy=0;
-      if(it.kind!=="self"){ for(let k=0;k<(dense?22:14);k++){ const cand=(k===0?0:(k%2?1:-1)*Math.ceil(k/2)*gap*.85); if(!placed.some(p=>Math.abs(p.x-x)<gap&&Math.abs(p.y-cand)<gap)){ dy=cand; break; } dy=cand; } dy=clamp(dy,-band+3,band-3); placed.push({x,y:dy}); }
+      if(it.kind!=="self"){ for(let k=0;k<(dense?22:14);k++){ const cand=(k===0?0:(k%2?1:-1)*Math.ceil(k/2)*gap*.85); if(!hits(x,cand)){ dy=cand; break; } dy=cand; } dy=clamp(dy,-band+3,band-3); placed.push({x,y:dy}); }
       const out=it.v<T.a||it.v>T.b, tip=esc(row.tipFn(it));
       if(it.kind==="self") s+=`<path class="sw-self" d="${C.shapePath("diamond",x,cy,7.5)}" tabindex="0" data-tip-html="${tip}"/>`;
       else s+=`<circle class="sw-d ${it.kind} ${out?"out":""}" cx="${x}" cy="${cy+dy}" r="${it.kind==="peer"?r+.6:r}" ${it.kind==="peer"?`style="fill:${row.gcolor||"var(--viz-1)"}"`:""} data-id="${esc(it.id)}" data-tip-html="${tip}"/>`; });

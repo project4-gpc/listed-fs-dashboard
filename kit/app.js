@@ -22,7 +22,8 @@ M.views.forEach(v=>{ if((v.key==="default"||v.key==="all")&&!v.cols.includes("st
 
 // ---------- formatting ----------
 const MINUS = "−";
-const nf = (v,d)=> (Math.abs(v)).toLocaleString("en-IN",{minimumFractionDigits:d,maximumFractionDigits:d});
+// one Intl formatter per precision: same output as toLocaleString, without building a formatter on every call
+const NF = {}, nf = (v,d)=> (NF[d] || (NF[d]=new Intl.NumberFormat("en-IN",{minimumFractionDigits:d,maximumFractionDigits:d}))).format(Math.abs(v));
 const NA = '<span class="na" title="Not available">–</span>';
 function num(v,d=1){ if(v==null||!isFinite(v)) return NA; return v<0?`<span class="neg">${MINUS}${nf(v,d)}</span>`:nf(v,d); }
 function fmt(k, v, c, opt={}){
@@ -303,9 +304,10 @@ function render(){
   const key=page+"|"+arg, same=key===lastKey;
   if(!same&&lastKey&&PUI) PUI.closeDrawer();
   C.Tip.hide();
-  if(!same){ main.classList.remove("enter"); void main.offsetWidth; if(!RM()) main.classList.add("enter"); }
+  // restart the entrance animation on the next frame (forcing a reflow here made every page switch lay out twice)
+  if(!same){ main.classList.remove("enter"); if(!RM()) requestAnimationFrame(()=>main.classList.add("enter")); }
   fn(main, st, arg, same);
-  if(!same){ if(lastKey) { main.focus({preventScroll:true}); scrollTo({top:0}); } }
+  if(!same){ if(lastKey) { main.focus({preventScroll:true}); if(scrollY) scrollTo({top:0}); } }
   lastKey=key;
   document.title = `${({overview:"Overview",pipeline:"Pipeline",screener:"Screener",company:(byId.get(arg)||{}).name||"Company",shortlist:"Shortlist",compare:"Compare",fit:"Industry fit",dq:"Data quality",method:"Methodology",dev:"Chart gallery"})[page]||"Overview"} · ${M.product}`;
 }
@@ -849,7 +851,7 @@ PAGES.fit = (main, st)=>{
   const scr=key=>href("screener","",{...filterOnly(st),g:[key]});
   const rated=F.rating>=0, inSheet=F.rows.reduce((a,r)=>a+r.n,0);
   const tiles=[[ "Industries", F.rows.length, `in “${F.sheet}”` ], [ "Companies covered", inSheet, `of ${M.companies.length} on the outreach list` ],
-    ...(rated?F.ratings.map(v=>[`Fit: ${v}`, M.companies.filter(c=>c.ifit===v).length, `companies · ${F.rows.filter(r=>r.cells[F.rating]===v).length} industries`, v]):[])];
+    ...(rated?F.ratings.map(v=>[`Industry fit: ${v}`, M.companies.filter(c=>c.ifit===v).length, `companies · ${F.rows.filter(r=>r.cells[F.rating]===v).length} industries`, v]):[])];
   const cell=(r,i)=>{ const t=r.cells[i]; if(!t) return `<td class="l muted">–</td>`;
     return i===F.rating?`<td class="l">${pill(t,F.tone(t))}</td>`:`<td class="l" style="white-space:normal;min-width:calc(var(--s-16) * 3);max-width:calc(var(--s-16) * 6)">${esc(t)}</td>`; };
   main.innerHTML=`<div class="ph"><div><span class="eyebrow">Industry fit · ${esc(F.sheet)}</span><h1>Strategic fit by industry</h1><p>The team's view of each industry on the outreach list, as entered in the workbook. Company counts come from the list; click an industry to open its companies in the screener.</p></div></div>

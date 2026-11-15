@@ -24,7 +24,11 @@ for (const d of dashboards) {
     await page.goto(url + "#/overview");
     const run = page.evaluate(qa); run.catch(() => {});
     let timer; r = await Promise.race([run, new Promise(res => { timer = setTimeout(res, 300000); })]); clearTimeout(timer);
-    if (!r) { console.log(`  - ${d.key}: browser QA stalled at #${page.url().split("#")[1] || ""} (attempt ${attempt} of 2)`); await page.close().catch(() => {}); }
+    if (!r) {
+      // say whether the page's script was still running (busy) or waiting on something that never came (idle)
+      const busy = await Promise.race([page.evaluate(() => false).catch(() => false), new Promise(res => setTimeout(() => res(true), 5000))]);
+      console.log(`  - ${d.key}: browser QA stalled at #${page.url().split("#")[1] || ""} (attempt ${attempt} of 2; page ${busy ? "busy" : "idle"})`);
+      await page.close().catch(() => {}); }
   }
   if (!r) { failed++; continue; }
   console.log(`${d.key}: ${r.pages} pages, ${r.companies} companies, ${r.cellsChecked} cells checked, ${r.failures.length} failures`);

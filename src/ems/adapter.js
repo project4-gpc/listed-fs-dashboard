@@ -47,7 +47,7 @@ function build(src, opts){
     if(r.p!=null&&r.p<0) flags.push({key:"loss",label:"Loss-making",tone:"warn",tip:"FY25 net profit below zero."});
     if(r.e!=null&&r.e<=0) flags.push({key:"ebitdaneg",label:"EBITDA ≤ 0",tone:"warn",tip:"FY25 EBITDA zero or negative."});
     if(r.src) flags.push({key:srcKey(r.src),label:r.src,tone:"neu",tip:`Sourced from ${r.src} (“Sourced From” in the sheet).`});
-    if(ifit) flags.push({key:fitKey(ifit),label:`Fit: ${ifit}`,tone:fitTone(ifit),tip:`${industryFit.cols[industryFit.rating].label||"Strategic fit"} of the ${r.seg} industry (“${industryFit.sheet}”).`});
+    if(ifit) flags.push({key:fitKey(ifit),label:`Industry fit: ${ifit}`,tone:fitTone(ifit),tip:`${industryFit.cols[industryFit.rating].label||"Strategic fit"} of the ${r.seg} industry (“${industryFit.sheet}”).`});
     ["r","e","p"].forEach(k=>{ if(r[k]==null) dq.push({level:"warn",text:`${({r:"Revenue",e:"EBITDA",p:"Net profit"})[k]} is blank in the sheet.`}); });
     if(!r.d) dq.push({level:"info",text:"Business description is blank in the sheet."});
     if(r.e!=null&&r.p!=null&&r.e>0&&r.p>r.e) dq.push({level:"warn",text:`Net profit (₹${r.p} cr) exceeds EBITDA (₹${r.e} cr): check for other income or a data-entry error.`});
@@ -93,7 +93,8 @@ function build(src, opts){
       conv:{label:"Net profit ÷ EBITDA",short:"Conversion",group:"Profitability",fmt:"chg",def:"How much of EBITDA reaches net profit (after D&A, interest, tax)",formula:"Net profit ÷ EBITDA (EBITDA > 0 only)",source:"Derived",asof:asofStr,better:"high"}
     },
     textCols:{desc:{label:"Business description",group:"Profile",def:"Business description from the sheet",source:"Consol Target Outreach List"}, ev:{label:"Evaluated?",group:"Status",def:"“Whether evaluated?” column of the sheet",source:"Consol Target Outreach List"},
-      ...Object.fromEntries(XCOLS.map(col=>[col.key,{label:col.h,short:col.h,group:"Details",def:`“${col.h}” column of the sheet`,source:tab,get:c=>c.x[col.h]||""}])),
+      ...Object.fromEntries(XCOLS.map(col=>[col.key,{label:col.h,short:col.h,group:"Details",def:`“${col.h}” column of the sheet`,source:tab,get:c=>c.x[col.h]||"",
+        tone:rows.some(r=>(r.x||{})[col.h]) && rows.every(r=>!(r.x||{})[col.h] || fitTone(r.x[col.h])!=="neu") ? fitTone : null}])),
       ...Object.fromEntries((industryFit?industryFit.cols:[]).map((col,i)=>[`if${i}`,{label:`Industry fit: ${col.label||`column ${i+2}`}`,short:col.label||"Industry fit",group:"Industry fit",def:`“${col.label}” of the company's industry in “${industryFit.sheet}”`,source:industryFit.sheet,get:c=>(fitRow(c.seg)||{cells:[]}).cells[i]||"",tone:i===industryFit.rating?fitTone:null}]))},
     columnGroups:["Profile","Details","Industry fit","Size","Profitability","Status"],
     views:[
@@ -119,7 +120,7 @@ function build(src, opts){
     presets:[
       {key:"notes",label:"Has notes",desc:"A note or cell comment in the sheet",state:{t:["notes"]}},
       ...SRCS.map(s=>({key:srcKey(s),label:`Sourced from ${s}`,desc:`“Sourced From” is ${s} in the sheet`,state:{t:[srcKey(s)]}})),
-      ...(industryFit?industryFit.ratings:[]).map(v=>({key:fitKey(v),label:`Fit: ${v}`,desc:`Industry strategic fit is ${v}`,state:{t:[fitKey(v)]}})),
+      ...(industryFit?industryFit.ratings:[]).map(v=>({key:fitKey(v),label:`Industry fit: ${v}`,desc:`“${industryFit.cols[industryFit.rating].label}” is ${v} for the company's industry`,state:{t:[fitKey(v)]}})),
       {key:"profit",label:"Profitable",desc:"EBITDA and net profit both positive",state:{t:["ebitdapos","nppos"],s:["-em"]}},
       {key:"scale",label:"₹50 cr+ revenue",desc:"FY25 revenue at least ₹50 cr",state:{r:{r:[50,null]}}},
       {key:"fresh",label:"Not yet evaluated",desc:"“Whether evaluated?” is No",state:{t:["notev"]}}
@@ -193,8 +194,11 @@ function fitModel(F, SEGS, segCount, segKey){
   const cols = (F.cols||[]).map((h,i)=>({key:"f"+i, label:h}));
   const rows = F.rows.map(r=>{ const seg = byNorm[norm(r[0])]||null;
     return {label:r[0], seg, key:seg?segKey(seg):null, n:seg?segCount[seg]:0, cells:cols.map((c,i)=>r[i+1]||"")}; });
-  const rating = cols.findIndex((c,i)=>{ const vs=rows.map(r=>r.cells[i]).filter(Boolean), d=new Set(vs);
-    return vs.length>=Math.min(3,rows.length) && d.size<=8 && d.size<vs.length && [...d].every(v=>v.length<=24 && !/^[-+]?[\d.,]+%?$/.test(v)); });
+  // prefer a column of recognised verdicts (Yes / No / Maybe, High / Low...); a column of one filler value (e.g. "n.a.") is never the rating
+  const cand = cols.map((c,i)=>{ const vs=rows.map(r=>r.cells[i]).filter(Boolean), d=new Set(vs);
+    return vs.length>=Math.min(3,rows.length) && d.size>=2 && d.size<=8 && d.size<vs.length && [...d].every(v=>v.length<=24 && !/^[-+]?[\d.,]+%?$/.test(v)); });
+  const verdicts = i => rows.every(r=>!r.cells[i] || fitTone(r.cells[i])!=="neu");
+  const rating = cand.findIndex((ok,i)=>ok&&verdicts(i)) >= 0 ? cand.findIndex((ok,i)=>ok&&verdicts(i)) : cand.indexOf(true);
   const order = ["pos","warn","neu","neg"];
   const ratings = rating<0 ? [] : [...new Set(rows.map(r=>r.cells[rating]).filter(Boolean))].sort((a,b)=>order.indexOf(fitTone(a))-order.indexOf(fitTone(b))||a.localeCompare(b));
   const bySeg = {}; rows.forEach(r=>{ if(r.seg&&!bySeg[r.seg]) bySeg[r.seg]=r; });
